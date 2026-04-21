@@ -1,0 +1,123 @@
+# Orchestrates platform builds/deploys, then creates a GitHub Release with download and store links.
+# Push trigger to release/beta is disabled while testing; run via workflow_dispatch when ready.
+
+name: Release all platforms
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-all-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    uses: ./.github/workflows/build-linux.yml
+    secrets: inherit
+
+  windows:
+    uses: ./.github/workflows/build-windows.yml
+    secrets: inherit
+
+  android:
+    uses: ./.github/workflows/deploy-android.yml
+    secrets: inherit
+
+  ios:
+    uses: ./.github/workflows/deploy-ios.yml
+    secrets: inherit
+
+  macos:
+    uses: ./.github/workflows/deploy-macos.yml
+    secrets: inherit
+
+  flatpak:
+    uses: ./.github/workflows/deploy-flatpak.yml
+    secrets: inherit
+
+  release:
+    name: Create GitHub release
+    needs: [linux, windows, android, ios, macos, flatpak]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: version
+        uses: ./.github/actions/extract-version
+
+      - name: Compute tag and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          LINUX_ZIP: ${{ needs.linux.outputs.zip_url }}
+          LINUX_AI: ${{ needs.linux.outputs.appimage_url }}
+          WIN_ZIP: ${{ needs.windows.outputs.zip_url }}
+          WIN_INST: ${{ needs.windows.outputs.installer_url }}
+          PLAY_TEST: ${{ needs.android.outputs.play_testing_url }}
+          PLAY_STORE: ${{ needs.android.outputs.play_store_url }}
+          TF_JOIN: ${{ needs.ios.outputs.testflight_join_url }}
+          ANDROID_UPLOAD_OK: ${{ needs.android.outputs.android_upload_succeeded }}
+          IOS_UPLOAD_OK: ${{ needs.ios.outputs.ios_upload_succeeded }}
+          MACOS_UPLOAD_OK: ${{ needs.macos.outputs.macos_upload_succeeded }}
+          FLATPAK_OK: ${{ needs.flatpak.outputs.flatpak_build_succeeded }}
+        run: |
+          set -euo pipefail
+          VER="${{ steps.version.outputs.version }}"
+
+          if [ "$REF_NAME" = "release/beta" ]; then
+            PREFIX="v${VER}-beta"
+            N=1
+            while gh release view "${PREFIX}.${N}" --repo "$REPO" &>/dev/null; do
+              N=$((N + 1))
+            done
+            TAG="${PREFIX}.${N}"
+          elif [ "$REF_NAME" = "master" ]; then
+            TAG="v${VER}"
+            if gh release view "$TAG" --repo "$REPO" &>/dev/null; then
+              echo "::error::GitHub Release ${TAG} already exists for ${REPO}"
+              exit 1
+            fi
+          else
+            echo "::error::release-all only publishes from refs release/beta or master (got: ${REF_NAME})"
+            exit 1
+          fi
+
+          NOTES_FILE="${RUNNER_TEMP}/release-notes.md"
+          {
+            echo "## Pylux v${VER}"
+            echo ""
+            echo "**Branch:** \`${REF_NAME}\` · **Tag:** \`${TAG}\`"
+            echo ""
+            echo "### Desktop (Dropbox)"
+            if [ "$REF_NAME" = "release/beta" ]; then
+              echo "- **Rolling paths (beta):** Dropbox \`pylux-beta-latest.*\` / \`pylux-windows-installer-beta-latest.exe\` — stable \`pylux-latest\` / \`installer-latest\` are not overwritten."
+              echo ""
+            fi
+            echo "- **Linux (zip):** ${LINUX_ZIP:-_unavailable_}"
+            echo "- **Linux (AppImage):** ${LINUX_AI:-_unavailable_}"
+            echo "- **Windows (zip):** ${WIN_ZIP:-_unavailable_}"
+            echo "- **Windows (installer):** ${WIN_INST:-_unavailable_}"
+            echo ""
+            echo "### Google Play (Android)"
+            echo "- **Open testing:** ${PLAY_TEST:-_unavailable_}"
+            echo "- **Store listing:** ${PLAY_STORE:-_unavailable_}"
+            echo "- **Upload succeeded:** ${ANDROID_UPLOAD_OK}"
+            echo ""
+            echo "### TestFlight (iOS & Mac)"
+            echo "- **Join:** ${TF_JOIN:-https://testflight.apple.com/join/V8pv6cXK}"
+            echo "- **iOS upload succeeded:** ${IOS_UPLOAD_OK}"
+            echo "- **macOS upload succeeded:** ${MACOS_UPLOAD_OK}"
+            echo ""
+            echo "### Flatpak"
+            echo "- **CI verify build succeeded:** ${FLATPAK_OK}"
+            echo "- **Flathub:** [io.github.ForWardTechnologiesLLC.Pylux](https://flathub.org/apps/io.github.ForWardTechnologiesLLC.Pylux)"
+          } > "$NOTES_FILE"
+
+          gh release create "$TAG" --repo "$REPO" --title "Pylux ${TAG}" --notes-file "$NOTES_FILE"
