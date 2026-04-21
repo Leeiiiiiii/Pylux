@@ -27,6 +27,11 @@
   <content_rating type="oars-1.1" />
   <!-- Flathub: add <release> entries here when shipping new versions (not generated from CMake). -->
   <releases>
+    <release date="2026-04-21" version="2.10.11">
+      <description>
+        <p>Version bump; release branches aligned with master.</p>
+      </description>
+    </release>
     <release date="2026-04-20" version="2.10.10">
       <description>
         <p>Initial Pylux release on Flathub.</p>
