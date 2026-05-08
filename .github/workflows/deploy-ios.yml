@@ -236,22 +236,26 @@ jobs:
         if: always()
         run: |
           {
-            echo "## Pylux iOS — v${CHIAKI_VERSION:-?} → TestFlight"
+            echo "## Pylux iOS — v${CHIAKI_VERSION:-?}"
             echo ""
             if [ "${{ steps.upload_testflight.outcome }}" = "success" ]; then
               if [ "${{ github.ref_name }}" = "master" ]; then
-                echo "**Branch:** \`master\` — Fastlane may **submit for App Store review** after upload when \`PYLUX_SUBMIT_FOR_REVIEW\` is true (see workflow)."
+                echo "Submitted for App Store review. Once approved, download here:"
+                echo ""
+                echo "**[Download on the App Store](https://apps.apple.com/us/app/pylux-remote-play/id6761292658)**"
+                echo ""
+                echo "> If recently submitted, allow a few days for Apple review before it appears."
               else
-                echo "**Branch:** \`${{ github.ref_name }}\` — IPA uploaded to **TestFlight** with **External** distribution (Fastlane waits for processing on \`release/beta\`)."
+                echo "Beta build uploaded to TestFlight."
+                echo ""
+                echo "**[Join TestFlight beta](https://testflight.apple.com/join/V8pv6cXK)**"
+                echo ""
+                echo "1. Install [TestFlight](https://apps.apple.com/app/testflight/id899247664) on your iPhone if you haven't already."
+                echo "2. Open the join link above and accept the invite."
+                echo "3. Install Pylux from TestFlight. New builds may take a short time to pass Beta App Review before appearing."
               fi
-              echo ""
-              echo "### How beta testers get the app"
-              echo "- **Join TestFlight (public link):** [https://testflight.apple.com/join/V8pv6cXK](https://testflight.apple.com/join/V8pv6cXK)"
-              echo "1. Install Apple’s [**TestFlight**](https://apps.apple.com/app/testflight/id899247664) app if needed."
-              echo "2. Open the join link above, accept the invite, then install **Pylux** from TestFlight."
-              echo "3. First-time **External** builds may require a short **Beta App Review** before the link works for everyone."
             else
-              echo "TestFlight upload step outcome: **${{ steps.upload_testflight.outcome }}**. Fix earlier steps or secrets, then re-run this workflow."
+              echo "Upload did not complete (outcome: **${{ steps.upload_testflight.outcome }}**). Check the logs above for details."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 

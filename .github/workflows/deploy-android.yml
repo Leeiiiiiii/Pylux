@@ -178,33 +178,34 @@ jobs:
           {
             echo "## Pylux Android — v${CHIAKI_VERSION:-?}"
             echo ""
-            if [ "${{ steps.bundle_release.outcome }}" = "skipped" ]; then
-              echo "**Build (\`bundleRelease\`):** not run — an earlier step in this job failed. **Google Play upload was not attempted.**"
-              echo ""
-            elif [ "${{ steps.bundle_release.outcome }}" != "success" ]; then
-              echo "**Build (\`bundleRelease\`):** **${{ steps.bundle_release.outcome }}** — see logs above (Gradle, signing, or NDK). **Google Play upload was not attempted**; later steps did not run."
-              echo ""
+            if [ "${{ steps.bundle_release.outcome }}" = "skipped" ] || [ "${{ steps.bundle_release.outcome }}" != "success" ]; then
+              echo "Build did not complete (outcome: **${{ steps.bundle_release.outcome }}**). Check the logs above for details."
             else
               case "${UPLOAD_ENABLED:-false}" in
                 true)
                   if [ "${{ steps.upload_play.outcome }}" = "success" ]; then
                     if [ "${{ github.ref_name }}" = "master" ]; then
-                      echo "**Google Play track:** \`production\` (AAB uploaded from \`master\`)."
+                      echo "Released to the Play Store:"
+                      echo ""
+                      echo "**[Get it on Google Play](https://play.google.com/store/apps/details?id=com.pylux.stream)**"
+                      echo ""
+                      echo "Available for Android phones, tablets, and Android TV."
                     else
-                      echo "**Google Play track:** \`beta\` — testers opt in via the link below, then install from Google Play."
+                      echo "Beta build uploaded to Google Play."
+                      echo ""
+                      echo "**[Join the beta](https://play.google.com/apps/testing/com.pylux.stream)**"
+                      echo ""
+                      echo "1. Open the join link above to opt in to the beta program."
+                      echo "2. Install or update Pylux from the [Play Store](https://play.google.com/store/apps/details?id=com.pylux.stream)."
+                      echo "3. Android TV: join the beta on a phone or browser first, then install from the Play Store on your TV."
                     fi
                   else
-                    echo "**Google Play upload** did not finish (step outcome: **${{ steps.upload_play.outcome }}**)."
+                    echo "Upload did not complete (outcome: **${{ steps.upload_play.outcome }}**). Check the logs above for details."
                   fi
                   ;;
                 *)
-                  echo "**Google Play upload:** skipped (\`GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64\` was not set). Configure the secret to publish from CI."
+                  echo "Google Play upload was skipped (secret not configured)."
                   ;;
               esac
-              echo ""
             fi
-            echo "### How beta testers get the app"
-            echo "- **Open testing:** share Google’s opt-in link, then install from Play:"
-            echo "  - [Join beta — \`com.pylux.stream\`](https://play.google.com/apps/testing/com.pylux.stream)"
-            echo "- **Store listing:** [Google Play — Pylux](https://play.google.com/store/apps/details?id=com.pylux.stream)"
           } >> "$GITHUB_STEP_SUMMARY"
