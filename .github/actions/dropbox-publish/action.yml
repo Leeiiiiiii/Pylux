@@ -86,7 +86,6 @@ runs:
           fi
           if [ -z "$URL" ]; then
             echo "::warning::Could not obtain a Dropbox share link for $LATEST."
-            echo "::warning::Raw response: $RESP"
             echo "::warning::Your Dropbox app likely needs the 'sharing.write' and 'sharing.read' scopes; then regenerate DROPBOX_REFRESH_TOKEN."
             printf ''
             return 0

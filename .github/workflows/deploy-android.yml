@@ -129,8 +129,7 @@ jobs:
           ./gradlew bundleRelease \
             --parallel \
             --build-cache \
-            -Dorg.gradle.java.home="$JAVA_HOME" \
-            --stacktrace
+            -Dorg.gradle.java.home="$JAVA_HOME"
 
       - name: Decode Google Play service account key
         env:
