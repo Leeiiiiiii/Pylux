@@ -47,16 +47,22 @@ platform :ios do
       )
     elsif submit
       # master → App Store production submission
+      # Write the "What's New" metadata file so deliver can set whatsNew on the version.
+      # release_notes is silently ignored when skip_metadata:true, so we use a file instead.
+      require 'fileutils'
+      meta_en = File.expand_path("./fastlane/metadata/en-US")
+      FileUtils.mkdir_p(meta_en)
+      File.write(File.join(meta_en, "release_notes.txt"), changelog_text)
+
       UI.message("Submitting to App Store for review")
       upload_to_app_store(
         api_key: api_key,
         ipa: ipa_path,
         submit_for_review: true,
         automatic_release: false,
-        skip_metadata: true,
+        skip_metadata: false,
         skip_screenshots: true,
         precheck_include_in_app_purchases: false,
-        release_notes: { "en-US" => changelog_text },
         submission_information: {
           export_compliance_uses_encryption: false,
           add_id_info_uses_idfa: false

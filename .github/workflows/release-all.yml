@@ -92,42 +92,66 @@ jobs:
           NOTES_FILE="${RUNNER_TEMP}/release-notes.md"
           TF_URL="${TF_JOIN:-https://testflight.apple.com/join/V8pv6cXK}"
           FLATHUB_URL="https://flathub.org/apps/io.github.ForWard_Technologies_LLC.Pylux"
+          IOS_APPSTORE_URL="https://apps.apple.com/app/pylux-remote-play/id6761292658"
+          MACOS_APPSTORE_URL="https://apps.apple.com/app/pylux-remote-play/id6761292658"
           {
             echo "## Pylux v${VER}"
             echo ""
             echo "**Branch:** \`${REF_NAME}\` · **Tag:** \`${TAG}\`"
             echo ""
+
             echo "### Android (Google Play)"
             echo ""
-            echo "**Get it:** [Open testing (opt-in)](${PLAY_TEST:-#}) · [Play Store listing](${PLAY_STORE:-#})"
-            echo ""
-            echo "- **Android (phones & tablets)** — use **Open testing** above to install the beta, or open the **Play Store** link once you are in the testing program."
-            echo "- **Android TV** — same app on Google Play: open the Play Store on your TV, search for **Pylux**, or use the same listing link (opt in to open testing on a phone/browser first if required)."
+            if [ "$REF_NAME" = "release/beta" ]; then
+              echo "**Get it:** [Join open beta](${PLAY_TEST:-#}) · [Play Store (beta)](${PLAY_STORE:-#})"
+              echo ""
+              echo "- **Android (phones & tablets)** — join open testing via the link above, then install from the Play Store."
+              echo "- **Android TV** — join beta on a phone/browser first, then install from the Play Store on your TV."
+            else
+              echo "**Get it:** [Play Store](${PLAY_STORE:-#})"
+              echo ""
+              echo "- **Android (phones & tablets)** and **Android TV** — install directly from the Play Store listing above."
+            fi
             echo "- **Upload succeeded:** ${ANDROID_UPLOAD_OK}"
             echo ""
+
+            echo "### iOS & macOS (App Store)"
+            echo ""
+            if [ "$REF_NAME" = "release/beta" ]; then
+              echo "**Get it:** [Join TestFlight (iOS & macOS)](${TF_URL})"
+              echo ""
+              echo "- **iOS** — install via TestFlight using the link above."
+              echo "- **macOS** — install via TestFlight using the same link."
+            else
+              echo "**Get it:** [iOS App Store](${IOS_APPSTORE_URL}) · [Mac App Store](${MACOS_APPSTORE_URL})"
+              echo ""
+              echo "- **iOS** — available on the App Store. If recently submitted, allow a few days for Apple review."
+              echo "- **macOS** — available on the Mac App Store. If recently submitted, allow a few days for Apple review."
+            fi
+            echo "- **iOS upload succeeded:** ${IOS_UPLOAD_OK} · **macOS upload succeeded:** ${MACOS_UPLOAD_OK}"
+            echo ""
+
             echo "### Windows (Dropbox)"
             echo ""
             echo "**Downloads:** [Portable zip](${WIN_ZIP:-#}) · [Installer](${WIN_INST:-#})"
             echo ""
             if [ "$REF_NAME" = "release/beta" ]; then
-              echo "Beta rolling filenames on Dropbox: \`pylux-beta-latest.zip\`, \`pylux-windows-installer-beta-latest.exe\` (stable \`pylux-latest\` / \`installer-latest\` are not overwritten)."
+              echo "Beta rolling filenames: \`pylux-beta-latest.zip\`, \`pylux-windows-installer-beta-latest.exe\` (stable \`pylux-latest\` paths are not overwritten)."
               echo ""
             fi
+
             echo "### Linux (Dropbox)"
             echo ""
             echo "**Downloads:** [Portable zip](${LINUX_ZIP:-#}) · [AppImage](${LINUX_AI:-#})"
             echo ""
             if [ "$REF_NAME" = "release/beta" ]; then
-              echo "Beta rolling filenames on Dropbox: \`pylux-beta-latest.zip\`, \`pylux-beta-latest.AppImage\` (stable \`pylux-latest\` paths are not overwritten)."
+              echo "Beta rolling filenames: \`pylux-beta-latest.zip\`, \`pylux-beta-latest.AppImage\` (stable \`pylux-latest\` paths are not overwritten)."
               echo ""
             fi
-            echo "### iOS & macOS (TestFlight)"
+            echo "- **Portable zip** — unzip and run \`launch.sh\` (recommended for Steam). The launch script sets up bundled libs and the OpenSSL fallback automatically."
+            echo "- **AppImage** — make executable and run directly. Set \`APPIMAGE_EXTRACT_AND_RUN=1\` if Steam misbehaves."
             echo ""
-            echo "**Get it:** [Join TestFlight](${TF_URL})"
-            echo ""
-            echo "- **iOS** — upload succeeded: **${IOS_UPLOAD_OK}**"
-            echo "- **macOS** — upload succeeded: **${MACOS_UPLOAD_OK}**"
-            echo ""
+
             echo "### Flatpak"
             echo ""
             echo "**Get it:** [Flathub — io.github.ForWard_Technologies_LLC.Pylux](${FLATHUB_URL})"
