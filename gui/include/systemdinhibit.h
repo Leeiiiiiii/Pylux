@@ -10,7 +10,6 @@ public:
     SystemdInhibit(const QString &who, const QString &why, const QString &what, const QString &mode, QObject *parent = nullptr);
 
     void inhibit();
-    void simulateUserActivity();
     void release();
 
 signals:
@@ -26,4 +25,5 @@ private:
     QString what;
     QString mode;
     int fd = -1;
+    QString idleInhibitPath;
 };
