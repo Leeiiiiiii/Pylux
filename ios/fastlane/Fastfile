@@ -26,6 +26,7 @@ platform :ios do
     submit = ENV.fetch("PYLUX_SUBMIT_FOR_REVIEW", "false") == "true"
     beta_external = ENV.fetch("PYLUX_TESTFLIGHT_EXTERNAL_BETA", "false") == "true"
     changelog_text = "Continuing to provide regular updates and improvements for a better experience!"
+    release_notes = { "en-US" => changelog_text }
     reviewer_notes = "Minor bug fix post release. No new features."
 
     if beta_external
@@ -47,13 +48,6 @@ platform :ios do
       )
     elsif submit
       # master → App Store production submission
-      # Write the "What's New" metadata file so deliver can set whatsNew on the version.
-      # release_notes is silently ignored when skip_metadata:true, so we use a file instead.
-      require 'fileutils'
-      meta_en = File.expand_path("./fastlane/metadata/en-US")
-      FileUtils.mkdir_p(meta_en)
-      File.write(File.join(meta_en, "release_notes.txt"), changelog_text)
-
       UI.message("Submitting to App Store for review")
       upload_to_app_store(
         api_key: api_key,
@@ -61,6 +55,7 @@ platform :ios do
         submit_for_review: true,
         automatic_release: false,
         force: true,
+        release_notes: release_notes,
         skip_metadata: false,
         skip_screenshots: true,
         precheck_include_in_app_purchases: false,

@@ -124,8 +124,14 @@ jobs:
           export PATH="${{ github.workspace }}/build/third-party/cpp-steam-tools:/mingw64/share/qt6/bin/:/mingw64/bin/:${PATH}"
           export QT_PLUGIN_PATH="/mingw64/share/qt6/plugins"
           export QML2_IMPORT_PATH="/mingw64/share/qt6/qml"
-          copy_dll_dep() {
-            for dep; do
+          # Recursively find and copy DLL dependencies of pylux.exe
+          echo pylux/pylux.exe > tmp0.txt
+          while [ -e tmp0.txt ]
+          do
+            cp tmp0.txt tmp.txt
+            rm tmp0.txt
+            sort -u tmp.txt -o tmp.txt
+            ldd $(<tmp.txt) | awk '($2 == "=>") { print $3 }' | while read -r dep; do
               case "$dep" in
                 ""|*"/Windows/"*|*"/WINDOWS/"*|*"/System32/"*|*"/SYSTEM32/"*|*"/SysWOW64/"*|*"/SYSWOW64/"*)
                   continue
@@ -137,15 +143,6 @@ jobs:
                 echo "$dep" >> tmp0.txt
               fi
             done
-          }
-          # Recursively find and copy DLL dependencies of pylux.exe
-          echo pylux/pylux.exe > tmp0.txt
-          while [ -e tmp0.txt ]
-          do
-            cp tmp0.txt tmp.txt
-            rm tmp0.txt
-            sort -u tmp.txt -o tmp.txt
-            ldd $(<tmp.txt) | awk '($2 == "=>") { print $3 }' | xargs -r copy_dll_dep
           done
           # Copy Qt plugins and QML modules
           windeployqt6.exe --no-translations --qmldir=gui/src/qml pylux/pylux.exe
