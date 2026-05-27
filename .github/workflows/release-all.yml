@@ -166,7 +166,16 @@ jobs:
               FP_INSTALL=""
             fi
             FP_RUN="${FLATPAK_RUN:-flatpak run io.github.ForWard_Technologies_LLC.Pylux}"
-            echo "- **Flatpak (interim, until Flathub is live)** — install:"
+            echo "### Flatpak (Flathub — recommended for Steam Deck)"
+            echo ""
+            echo "**Get it:** [Flathub — io.github.ForWard_Technologies_LLC.Pylux](${FLATHUB_URL})"
+            echo ""
+            echo "- Install: \`flatpak install flathub io.github.ForWard_Technologies_LLC.Pylux\`"
+            echo "- Run: \`${FP_RUN}\`"
+            echo "- Update: \`flatpak update\` (or via Discover on Steam Deck)"
+            echo "- **CI verify build succeeded:** ${FLATPAK_OK}"
+            echo ""
+            echo "**Optional — Dropbox sideload bundle** (same build, no Flathub update channel):"
             echo '  ```bash'
             if [ -n "$FP_INSTALL" ]; then
               printf '  %s\n' "$FP_INSTALL"
@@ -174,18 +183,8 @@ jobs:
               echo "  (Flatpak install command unavailable — run Deploy Flatpak workflow first)"
             fi
             echo '  ```'
-            echo "  Run:"
-            echo '  ```bash'
-            printf '  %s\n' "$FP_RUN"
-            echo '  ```'
-            echo "  To update: run the install command again when a new bundle is published (no \`flatpak update\` until Flathub listing)."
+            echo "  Re-run the install command when a new bundle is published to update a sideloaded install."
             echo ""
-
-            echo "### Flatpak (Flathub)"
-            echo ""
-            echo "**When approved:** [Flathub — io.github.ForWard_Technologies_LLC.Pylux](${FLATHUB_URL}) — \`flatpak install flathub io.github.ForWard_Technologies_LLC.Pylux\`"
-            echo ""
-            echo "- **CI verify build succeeded:** ${FLATPAK_OK}"
           } > "$NOTES_FILE"
 
           gh release create "$TAG" --repo "$REPO" --title "Pylux ${TAG}" --notes-file "$NOTES_FILE"

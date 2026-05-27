@@ -51,7 +51,7 @@
             1. Run the following command in the `konsole`
 
                 ```
-                flatpak install -y io.github.ForWard_Technologies_LLC.Pylux
+                flatpak install flathub io.github.ForWard_Technologies_LLC.Pylux -y
                 ```
 
         !!! Note "About the Pylux Flatpak"

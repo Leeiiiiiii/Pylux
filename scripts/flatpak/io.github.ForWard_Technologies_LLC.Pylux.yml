@@ -1,6 +1,6 @@
-# Pylux Flatpak manifest — keep in sync with the Flathub submission branch:
-#   https://github.com/ForWard-Technologies-LLC/flathub/blob/add-pylux/io.github.ForWard_Technologies_LLC.Pylux.yml
-# deploy-flatpak.yml builds from local checkout (dir source) for CI; Flathub PR pins git commit.
+# Pylux Flatpak manifest — keep in sync with Flathub (update commit hash on each release):
+#   https://github.com/flathub/io.github.ForWard_Technologies_LLC.Pylux
+# deploy-flatpak.yml builds from local checkout (dir source) for CI; Flathub repo pins git commit.
 
 app-id: io.github.ForWard_Technologies_LLC.Pylux
 runtime: org.kde.Platform

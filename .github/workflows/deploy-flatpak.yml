@@ -3,10 +3,11 @@
 # AppStream release history (gui/*.metainfo.xml) is maintained manually for Flathub — not overwritten from CMake.
 #
 # Architecture: x86_64 (build verification) — Flathub itself builds both x86_64 + aarch64
-# Output: Flatpak bundle published to Dropbox (rolling + versioned) until Flathub listing is live.
+# Output: Flatpak bundle published to Dropbox (rolling + versioned) for sideload/testing.
+# Users on Steam Deck should install from Flathub for automatic updates via Discover.
 #
 # Manifest is kept in sync with:
-#   https://github.com/ForWard-Technologies-LLC/flathub/blob/add-pylux/io.github.ForWard_Technologies_LLC.Pylux.yml
+#   https://github.com/flathub/io.github.ForWard_Technologies_LLC.Pylux
 
 name: Deploy Flatpak (Flathub)
 
@@ -130,8 +131,8 @@ jobs:
               if [ -n "${DROPBOX_URL}" ]; then
                 INSTALL="curl -fsSL -o ${ROLLING_NAME} \"${DROPBOX_URL}\" && flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo && flatpak install --user -y ${ROLLING_NAME}"
                 RUN="flatpak run io.github.ForWard_Technologies_LLC.Pylux"
-                echo "### Install (until Flathub is approved)"
-                echo "Download and install from the local file (Flatpak cannot install directly from a Dropbox URL):"
+                echo "### Install (Dropbox bundle — sideload)"
+                echo "Prefer Flathub: \`flatpak install flathub io.github.ForWard_Technologies_LLC.Pylux\`. To sideload this CI bundle:"
                 echo ""
                 echo '```bash'
                 printf '%s\n' "$INSTALL"
@@ -144,21 +145,21 @@ jobs:
                 echo '```'
                 echo ""
                 echo "### Update an existing Dropbox install"
-                echo "Run the install command again when a new bundle is published. There is no \`flatpak update\` channel until the app is on Flathub."
+                echo "Re-run the install command to update a sideloaded bundle. Flathub installs update with \`flatpak update\`."
               else
                 echo "### Install"
                 echo "Dropbox publish did not succeed — no install commands. Fix the publish step above."
               fi
               echo ""
-              echo "### Once on Flathub"
-              echo "\`flatpak install flathub io.github.ForWard_Technologies_LLC.Pylux\` — then \`flatpak update\` works normally."
+              echo "### Flathub (recommended)"
+              echo "\`flatpak install flathub io.github.ForWard_Technologies_LLC.Pylux\` — [store listing](https://flathub.org/apps/io.github.ForWard_Technologies_LLC.Pylux)"
             else
               echo "Flatpak build step outcome: **${{ steps.flatpak_build.outcome }}**. Fix manifest or build errors above."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # TODO: Uncomment after Flathub submission is approved and flathub/io.github.ForWard_Technologies_LLC.Pylux exists.
-  #       Also add a FLATHUB_TOKEN secret (PAT with write access to that repo).
+  # Optional: uncomment to auto-sync manifest commit to flathub/io.github.ForWard_Technologies_LLC.Pylux on each deploy.
+  # Requires FLATHUB_TOKEN secret (PAT with write access to that repo).
   #
   # sync-to-flathub:
   #   name: Sync manifest to Flathub repo

@@ -15,32 +15,7 @@
 
 <a href="https://apps.apple.com/us/app/pylux-remote-play/id6761292658"><img src="assets/app-store-badge.svg" height="50" alt="Download on the App Store"></a>&nbsp;<a href="https://apps.apple.com/us/app/pylux-remote-play/id6761292658"><img src="assets/mac-app-store-badge.svg" height="50" alt="Download on the Mac App Store"></a>
 
-<!--
-  Flathub pending review
-  - Flathub badge currently links to #steam-deck-flathub (manual install) until the store listing is live
-  - When live: replace the Flathub <a> below with:
-      <a href="https://flathub.org/apps/io.github.ForWard_Technologies_LLC.Pylux"><img src="assets/flathub-badge.svg" height="50" alt="Get it on Flathub"></a>
-    and delete the #steam-deck-flathub section further below
--->
-
-<a href="#steam-deck-flathub"><img src="assets/flathub-badge.svg" height="50" alt="Flathub install instructions"></a>&nbsp;<a href="https://www.dropbox.com/scl/fi/wi8bjilwiklv7fde0b4ea/pylux-latest.AppImage?rlkey=3xne4ltuiq54ogfmng4gq24mp&dl=1"><img src="assets/linux-appimage-badge.svg" height="50" alt="Download AppImage"></a>
-
-<!-- Flathub pending review — delete this block when listing is live -->
-<a id="steam-deck-flathub"></a>
-
-**Steam Deck / Flathub Note**:
-
-Pylux is not available in the Steam Deck Discover store yet. Flathub’s review process is slow, so until the listing is approved you need to install it manually using the commands below. I will remove this section once Pylux is available on Flathub.
-
-Install:
-```
-curl -fsSL -o pylux-latest.flatpak "https://www.dropbox.com/scl/fi/zho2yrnso8u28rbx0jkwt/pylux-latest.flatpak?rlkey=kjftxhac24g43li6vpouqding&dl=1" && flatpak install --user -y pylux-latest.flatpak
-```
-Run:
-```
-flatpak run io.github.ForWard_Technologies_LLC.Pylux
-```
-<!-- end Flathub pending review -->
+<a href="https://flathub.org/apps/io.github.ForWard_Technologies_LLC.Pylux"><img src="assets/flathub-badge.svg" height="50" alt="Get it on Flathub"></a>&nbsp;<a href="https://www.dropbox.com/scl/fi/wi8bjilwiklv7fde0b4ea/pylux-latest.AppImage?rlkey=3xne4ltuiq54ogfmng4gq24mp&dl=1"><img src="assets/linux-appimage-badge.svg" height="50" alt="Download AppImage"></a>
 
 For full release notes and all downloads see the [Releases page](https://github.com/ForWard-Technologies-LLC/Pylux/releases).
 
@@ -58,7 +33,7 @@ For full release notes and all downloads see the [Releases page](https://github.
 - **Internet Play** — stream games from the game catalog or your owned game library
 - **Remote Play** — low-latency streaming of your PlayStation console to any supported device
 - **Cross-platform** — Android, Android TV, iOS, iPadOS, macOS, Windows, Linux, Steam Deck
-- **App-store installs** — available on Google Play, App Store, and Mac App Store
+- **App-store installs** — available on Google Play, App Store, Mac App Store, and [Flathub](https://flathub.org/apps/io.github.ForWard_Technologies_LLC.Pylux) (Linux / Steam Deck)
 - **Automatic console discovery and registration**
 - **Touch-friendly controls** — mobile-optimized UI for phones and tablets
 
