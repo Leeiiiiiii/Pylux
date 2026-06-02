@@ -315,10 +315,16 @@ class PsCloudCatalogService
 		kotlinx.coroutines.delay(PsCloudOwnership.PAGE_COOLDOWN_MS)
 		
 		val rawEntitlements = fetchEntitlementsPaginated(oauthToken)
+		val componentIdsByProductId = HashMap<String, MutableList<String>>()
+		for (e in rawEntitlements)
+		{
+			if (e.productId.isNotEmpty() && e.id.isNotEmpty())
+				componentIdsByProductId.getOrPut(e.productId) { mutableListOf() }.add(e.id)
+		}
 		val filtered = PsCloudOwnership.filterOwnedPs5Games(rawEntitlements)
 		
 		return PsCloudOwnership.crossReferenceOwnedGames(
-			filtered, publicCatalog, plusLibrarySupplement, productIdAliases
+			filtered, publicCatalog, plusLibrarySupplement, productIdAliases, componentIdsByProductId
 		)
 	}
 	

@@ -34,7 +34,8 @@ enum PsCloudOwnership {
         filteredEntitlements: [PsCloudEntitlement],
         publicCatalog: [CloudGame],
         plusLibrarySupplement: [CloudGame] = [],
-        productIdAliases: [String: String] = [:]
+        productIdAliases: [String: String] = [:],
+        componentIdsByProductId: [String: [String]] = [:]
     ) -> [CloudGame] {
         var catalogMap: [String: CloudGame] = [:]
         for game in publicCatalog {
@@ -55,29 +56,10 @@ enum PsCloudOwnership {
         let supplementStableKey = buildStableKeyIndex(plusLibrarySupplement)
 
         var byKey: [String: CloudGame] = [:]
-        for ent in filteredEntitlements {
-            let stable = productIdStableKey(ent.productId)
-            let skipStableDemo = ent.name.localizedCaseInsensitiveContains("demo")
-            let meta: CloudGame?
-            if !ent.productId.isEmpty, let g = catalogMap[ent.productId] {
-                meta = g
-            } else if !ent.id.isEmpty, let g = catalogMap[ent.id] {
-                meta = g
-            } else if !ent.productId.isEmpty, ent.id == ent.productId,
-                      let g = supplementMap[ent.productId] {
-                meta = g
-            } else if let stable, !skipStableDemo, let g = browseStableKey[stable] {
-                meta = g
-            } else if let stable, !skipStableDemo, let g = supplementStableKey[stable] {
-                meta = g
-            } else {
-                meta = nil
-            }
 
-            guard let meta else { continue }
-
+        func emitMatch(meta: CloudGame, ent: PsCloudEntitlement) {
             let displayName = meta.name.isEmpty ? ent.name : meta.name
-            var game = CloudGame(
+            let game = CloudGame(
                 productId: meta.id,
                 name: displayName,
                 imageUrl: meta.imageUrl,
@@ -96,6 +78,57 @@ enum PsCloudOwnership {
                 byKey[key] = preferOwnedEntry(existing: existing, candidate: game)
             } else {
                 byKey[key] = game
+            }
+        }
+
+        for ent in filteredEntitlements {
+            let skipStableDemo = ent.name.localizedCaseInsensitiveContains("demo")
+            var matches: [CloudGame] = []
+
+            if !ent.productId.isEmpty, let g = catalogMap[ent.productId] {
+                matches.append(g)
+            } else if !ent.id.isEmpty, let g = catalogMap[ent.id] {
+                matches.append(g)
+            } else if !ent.productId.isEmpty, ent.id == ent.productId,
+                      let g = supplementMap[ent.productId] {
+                matches.append(g)
+            } else {
+                let entitlementStableKey = productIdStableKey(ent.id)
+                if let entitlementStableKey, !skipStableDemo,
+                   let g = browseStableKey[entitlementStableKey] {
+                    matches.append(g)
+                } else if let entitlementStableKey, !skipStableDemo,
+                          let g = supplementStableKey[entitlementStableKey] {
+                    matches.append(g)
+                }
+            }
+
+            if matches.isEmpty {
+                var seenProductIds: Set<String> = []
+                for siblingId in componentIdsByProductId[ent.productId] ?? [] {
+                    let siblingMeta: CloudGame?
+                    if let g = catalogMap[siblingId] {
+                        siblingMeta = g
+                    } else if let g = supplementMap[siblingId] {
+                        siblingMeta = g
+                    } else if let siblingStableKey = productIdStableKey(siblingId), !skipStableDemo {
+                        siblingMeta = browseStableKey[siblingStableKey]
+                            ?? supplementStableKey[siblingStableKey]
+                    } else {
+                        siblingMeta = nil
+                    }
+
+                    guard let meta = siblingMeta else { continue }
+                    if meta.id.isEmpty || seenProductIds.contains(meta.id) { continue }
+                    seenProductIds.insert(meta.id)
+                    matches.append(meta)
+                }
+            }
+
+            if matches.isEmpty { continue }
+
+            for meta in matches {
+                emitMatch(meta: meta, ent: ent)
             }
         }
 

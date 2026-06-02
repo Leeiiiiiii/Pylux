@@ -466,13 +466,18 @@ final class CloudCatalogService {
             return nil
         }
         let rawEntitlements = rawObjects.compactMap { PsCloudOwnership.parseEntitlement($0) }
+        var componentIdsByProductId: [String: [String]] = [:]
+        for e in rawEntitlements where !e.productId.isEmpty && !e.id.isEmpty {
+            componentIdsByProductId[e.productId, default: []].append(e.id)
+        }
         let filtered = PsCloudOwnership.filterOwnedPs5Games(rawEntitlements)
 
         return PsCloudOwnership.crossReferenceOwnedGames(
             filteredEntitlements: filtered,
             publicCatalog: publicCatalog,
             plusLibrarySupplement: plusLibrarySupplement,
-            productIdAliases: productIdAliases
+            productIdAliases: productIdAliases,
+            componentIdsByProductId: componentIdsByProductId
         )
     }
 

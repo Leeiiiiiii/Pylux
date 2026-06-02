@@ -67,6 +67,7 @@ CloudCatalogBackend::CloudCatalogBackend(Settings *settings, QObject *parent)
     crossReferenceState.plusLibrarySupplement = QJsonArray();
     crossReferenceState.ownedGames = QJsonArray();
     crossReferenceState.productIdAliases.clear();
+    crossReferenceState.componentIdsByProductId.clear();
     crossReferenceState.catalogFetched = false;
     crossReferenceState.ownedGamesFetched = false;
 }
@@ -1523,6 +1524,17 @@ void CloudCatalogBackend::handleOwnedGamesResponse()
     
     // Filter for PS5 games (package_type=PSGD)
     QJsonArray ps5Games = filterOwnedPs5Games(ownedGamesState.accumulatedEntitlements);
+
+    QMap<QString, QStringList> componentIds;
+    for (const QJsonValue &ent : ownedGamesState.accumulatedEntitlements) {
+        if (!ent.isObject())
+            continue;
+        const QJsonObject o = ent.toObject();
+        const QString pid = o.value(QStringLiteral("product_id")).toString();
+        const QString eid = o.value(QStringLiteral("id")).toString();
+        if (!pid.isEmpty() && !eid.isEmpty())
+            componentIds[pid].append(eid);
+    }
     
     if (settings && settings->GetLogVerbose()) {
         qInfo() << "  PS5 games (PSGD):" << ps5Games.size();
@@ -1531,6 +1543,10 @@ void CloudCatalogBackend::handleOwnedGamesResponse()
     QJsonObject result;
     result["games"] = ps5Games;
     result["total"] = ps5Games.size();
+    QJsonObject componentObj;
+    for (auto it = componentIds.cbegin(); it != componentIds.cend(); ++it)
+        componentObj.insert(it.key(), QJsonArray::fromStringList(it.value()));
+    result[QStringLiteral("componentIdsByProductId")] = componentObj;
     
     QJsonDocument resultDoc(result);
     
@@ -1540,6 +1556,7 @@ void CloudCatalogBackend::handleOwnedGamesResponse()
     // If cross-reference is active, populate its state
     if (crossReferenceState.callback.isCallable() && !crossReferenceState.ownedGamesFetched) {
         crossReferenceState.ownedGames = ps5Games;
+        crossReferenceState.componentIdsByProductId = componentIds;
         crossReferenceState.ownedGamesFetched = true;
         if (settings && settings->GetLogVerbose()) {
             qInfo() << "[CROSS-REF] Fetched owned PS5 games from API:" << ps5Games.size() << "games";
@@ -1648,6 +1665,7 @@ void CloudCatalogBackend::getOwnedPs5CloudGames(const QJSValue &callback)
     crossReferenceState.plusLibrarySupplement = QJsonArray();
     crossReferenceState.ownedGames = QJsonArray();
     crossReferenceState.productIdAliases.clear();
+    crossReferenceState.componentIdsByProductId.clear();
     crossReferenceState.catalogFetched = false;
     crossReferenceState.ownedGamesFetched = false;
     
@@ -1702,6 +1720,17 @@ void CloudCatalogBackend::getOwnedPs5CloudGames(const QJSValue &callback)
                 crossReferenceState.ownedGamesFetched = true;
                 if (settings && settings->GetLogVerbose()) {
                     qInfo() << "[CROSS-REF] Loaded owned PS5 games from cache:" << crossReferenceState.ownedGames.size() << "games";
+                }
+            }
+            if (obj.contains(QStringLiteral("componentIdsByProductId"))
+                && obj.value(QStringLiteral("componentIdsByProductId")).isObject()) {
+                const QJsonObject m = obj.value(QStringLiteral("componentIdsByProductId")).toObject();
+                crossReferenceState.componentIdsByProductId.clear();
+                for (auto it = m.begin(); it != m.end(); ++it) {
+                    QStringList ids;
+                    for (const QJsonValue &v : it.value().toArray())
+                        ids.append(v.toString());
+                    crossReferenceState.componentIdsByProductId.insert(it.key(), ids);
                 }
             }
         }
@@ -2243,11 +2272,10 @@ void CloudCatalogBackend::processCrossReferenceComplete()
 
     QJsonArray filteredGames;
     int matchedCount = 0;
-    int productIdMatchCount = 0;
-    int entitlementIdMatchCount = 0;
-    int supplementMatchCount = 0;
-    int stableKeyBrowseMatchCount = 0;
-    int stableKeySupplementMatchCount = 0;
+    int t1Count = 0;
+    int t2Count = 0;
+    int t3Count = 0;
+    int t4Count = 0;
     QMap<QString, QJsonObject> ownedByKey;
 
     for (const QJsonValue &ownedGame : crossReferenceState.ownedGames) {
@@ -2260,71 +2288,138 @@ void CloudCatalogBackend::processCrossReferenceComplete()
         const QString entName = ownedGameObj.value(QStringLiteral("game_meta")).toObject()
                                     .value(QStringLiteral("name")).toString();
         const bool skipStableDemo = entName.contains(QStringLiteral("demo"), Qt::CaseInsensitive);
-        const QString stableKey = ps5CloudProductIdStableKey(productId);
 
-        QJsonObject meta;
-        bool found = false;
-        bool fromSupplement = false;
+        QList<QPair<QJsonObject, bool>> matches;
+        int matchTier = 0;
 
         if (!productId.isEmpty() && cloudCatalogMap.contains(productId)) {
-            meta = cloudCatalogMap.value(productId);
-            found = true;
-            productIdMatchCount++;
+            matches.append({cloudCatalogMap.value(productId), false});
+            matchTier = 1;
         } else if (!entitlementId.isEmpty() && cloudCatalogMap.contains(entitlementId)) {
-            meta = cloudCatalogMap.value(entitlementId);
-            found = true;
-            entitlementIdMatchCount++;
+            matches.append({cloudCatalogMap.value(entitlementId), false});
+            matchTier = 2;
         } else if (!productId.isEmpty() && !entitlementId.isEmpty()
                    && entitlementId == productId && plusSupplementMap.contains(productId)) {
-            meta = plusSupplementMap.value(productId);
-            found = true;
-            fromSupplement = true;
-            supplementMatchCount++;
-        } else if (!stableKey.isEmpty() && !skipStableDemo && browseStableKey.contains(stableKey)) {
-            meta = browseStableKey.value(stableKey);
-            found = true;
-            stableKeyBrowseMatchCount++;
-        } else if (!stableKey.isEmpty() && !skipStableDemo
-                   && supplementStableKey.contains(stableKey)) {
-            meta = supplementStableKey.value(stableKey);
-            found = true;
-            fromSupplement = true;
-            stableKeySupplementMatchCount++;
+            matches.append({plusSupplementMap.value(productId), true});
+            matchTier = 2;
+        } else {
+            const QString entitlementStableKey = ps5CloudProductIdStableKey(entitlementId);
+            if (!entitlementStableKey.isEmpty() && !skipStableDemo
+                && browseStableKey.contains(entitlementStableKey)) {
+                matches.append({browseStableKey.value(entitlementStableKey), false});
+                matchTier = 3;
+            } else if (!entitlementStableKey.isEmpty() && !skipStableDemo
+                       && supplementStableKey.contains(entitlementStableKey)) {
+                matches.append({supplementStableKey.value(entitlementStableKey), true});
+                matchTier = 3;
+            }
         }
 
-        if (!found)
+        if (matches.isEmpty()) {
+            QSet<QString> seenProductIds;
+            for (const QString &siblingId :
+                 crossReferenceState.componentIdsByProductId.value(productId)) {
+                QJsonObject siblingMeta;
+                bool siblingFromSupplement = false;
+                if (cloudCatalogMap.contains(siblingId)) {
+                    siblingMeta = cloudCatalogMap.value(siblingId);
+                } else if (plusSupplementMap.contains(siblingId)) {
+                    siblingMeta = plusSupplementMap.value(siblingId);
+                    siblingFromSupplement = true;
+                } else {
+                    const QString siblingStableKey = ps5CloudProductIdStableKey(siblingId);
+                    if (!siblingStableKey.isEmpty() && !skipStableDemo) {
+                        if (browseStableKey.contains(siblingStableKey)) {
+                            siblingMeta = browseStableKey.value(siblingStableKey);
+                        } else if (supplementStableKey.contains(siblingStableKey)) {
+                            siblingMeta = supplementStableKey.value(siblingStableKey);
+                            siblingFromSupplement = true;
+                        }
+                    }
+                }
+                if (siblingMeta.isEmpty())
+                    continue;
+                const QString matchedPid =
+                    siblingMeta.value(QStringLiteral("productId")).toString();
+                if (matchedPid.isEmpty() || seenProductIds.contains(matchedPid))
+                    continue;
+                seenProductIds.insert(matchedPid);
+                matches.append({siblingMeta, siblingFromSupplement});
+            }
+            if (!matches.isEmpty())
+                matchTier = 4;
+        }
+
+        if (matches.isEmpty())
             continue;
 
-        if (meta.contains(QStringLiteral("name"))) {
-            const QString imagicName = meta.value(QStringLiteral("name")).toString();
-            if (!imagicName.isEmpty())
-                ownedGameObj.insert(QStringLiteral("name"), imagicName);
+        switch (matchTier) {
+        case 1: t1Count++; break;
+        case 2: t2Count++; break;
+        case 3: t3Count++; break;
+        case 4: t4Count++; break;
+        default: break;
         }
-        if (meta.contains(QStringLiteral("imageUrl"))
-            && !meta.value(QStringLiteral("imageUrl")).toString().isEmpty()) {
-            ownedGameObj.insert(QStringLiteral("imageUrl"), meta.value(QStringLiteral("imageUrl")));
-        }
-        if (meta.contains(QStringLiteral("conceptUrl"))) {
-            ownedGameObj.insert(QStringLiteral("conceptUrl"), meta.value(QStringLiteral("conceptUrl")));
-        }
-        ownedGameObj.insert(QStringLiteral("productId"), productId);
-        ownedGameObj.insert(QStringLiteral("streamingSupported"), !fromSupplement);
 
-        const QString conceptId = meta.value(QStringLiteral("conceptId")).toString();
-        const QString dedupeKey = !conceptId.isEmpty() ? QStringLiteral("c:") + conceptId
-                                : !productId.isEmpty() ? QStringLiteral("p:") + productId
-                                : !entitlementId.isEmpty() ? QStringLiteral("e:") + entitlementId
-                                : QStringLiteral("u:") + productId + QLatin1Char(':') + entitlementId;
+        for (const QPair<QJsonObject, bool> &match : matches) {
+            const QJsonObject meta = match.first;
+            const bool fromSupplement = match.second;
+            QJsonObject entry = ownedGameObj;
 
-        if (ownedByKey.contains(dedupeKey)) {
-            const QJsonObject existing = ownedByKey.value(dedupeKey);
-            const QString existingEntId = existing.value(QStringLiteral("id")).toString();
-            if (existingEntId.isEmpty() && !entitlementId.isEmpty())
-                ownedByKey.insert(dedupeKey, ownedGameObj);
-        } else {
-            ownedByKey.insert(dedupeKey, ownedGameObj);
+            if (meta.contains(QStringLiteral("name"))) {
+                const QString imagicName = meta.value(QStringLiteral("name")).toString();
+                if (!imagicName.isEmpty())
+                    entry.insert(QStringLiteral("name"), imagicName);
+            }
+            if (meta.contains(QStringLiteral("imageUrl"))
+                && !meta.value(QStringLiteral("imageUrl")).toString().isEmpty()) {
+                entry.insert(QStringLiteral("imageUrl"), meta.value(QStringLiteral("imageUrl")));
+            }
+            if (meta.contains(QStringLiteral("conceptUrl"))) {
+                entry.insert(QStringLiteral("conceptUrl"), meta.value(QStringLiteral("conceptUrl")));
+            }
+            // Identify the owned entry by the MATCHED CATALOG ROW (productId +
+            // conceptId) so the QML merge (findPs5CloudCatalogIndexForOwned) can
+            // link it back to the catalog card. Using the entitlement's bundle
+            // product_id here breaks T3/T4 matches whose entitlement id/product_id
+            // do not equal any catalog productId (e.g. RE7 base reached via the
+            // RE7 Gold bundle). The entitlement product_id is retained as
+            // storeProductId for streaming/store lookups.
+            const QString catalogProductId = meta.value(QStringLiteral("productId")).toString();
+            entry.insert(QStringLiteral("productId"),
+                         !catalogProductId.isEmpty() ? catalogProductId : productId);
+            entry.insert(QStringLiteral("storeProductId"), productId);
+
+            // conceptId may be a JSON number or string; normalize to a string.
+            const QJsonValue conceptVal = meta.value(QStringLiteral("conceptId"));
+            const QString conceptId = conceptVal.isString()
+                ? conceptVal.toString()
+                : (conceptVal.isDouble()
+                       ? QString::number(static_cast<qint64>(conceptVal.toDouble()))
+                       : QString());
+            if (!conceptId.isEmpty())
+                entry.insert(QStringLiteral("conceptId"), conceptId);
+            entry.insert(QStringLiteral("streamingSupported"), !fromSupplement);
+
+            // Dedupe by the MATCHED CATALOG identity (conceptId, then catalog
+            // productId). Using the entitlement product_id here collapses every
+            // bundle sibling (e.g. RE7 Gold -> RE7 base + Village) into a single
+            // entry, dropping all but the first match.
+            const QString dedupeKey = !conceptId.isEmpty() ? QStringLiteral("c:") + conceptId
+                                    : !catalogProductId.isEmpty() ? QStringLiteral("p:") + catalogProductId
+                                    : !entitlementId.isEmpty() ? QStringLiteral("e:") + entitlementId
+                                    : QStringLiteral("u:") + catalogProductId + QLatin1Char(':') + entitlementId;
+
+            if (ownedByKey.contains(dedupeKey)) {
+                const QJsonObject existing = ownedByKey.value(dedupeKey);
+                const QString existingEntId = existing.value(QStringLiteral("id")).toString();
+                if (existingEntId.isEmpty() && !entitlementId.isEmpty())
+                    ownedByKey.insert(dedupeKey, entry);
+            } else {
+                ownedByKey.insert(dedupeKey, entry);
+            }
+            matchedCount++;
         }
-        matchedCount++;
     }
 
     for (const QJsonObject &gameObj : ownedByKey)
@@ -2332,11 +2427,10 @@ void CloudCatalogBackend::processCrossReferenceComplete()
 
     if (settings && settings->GetLogVerbose()) {
         qInfo() << "[CROSS-REF] Matched games (cloud streamable):" << matchedCount;
-        qInfo() << "[CROSS-REF]   By product_id:" << productIdMatchCount;
-        qInfo() << "[CROSS-REF]   By entitlement id (fallback):" << entitlementIdMatchCount;
-        qInfo() << "[CROSS-REF]   By Plus library supplement:" << supplementMatchCount;
-        qInfo() << "[CROSS-REF]   By stable product id key (browse):" << stableKeyBrowseMatchCount;
-        qInfo() << "[CROSS-REF]   By stable product id key (supplement):" << stableKeySupplementMatchCount;
+        qInfo() << "[CROSS-REF]   T1 (product_id):" << t1Count;
+        qInfo() << "[CROSS-REF]   T2 (entitlement id):" << t2Count;
+        qInfo() << "[CROSS-REF]   T3 (stable key on id):" << t3Count;
+        qInfo() << "[CROSS-REF]   T4 (bundle siblings):" << t4Count;
     }
 
     QJsonObject result;
@@ -2355,6 +2449,7 @@ void CloudCatalogBackend::processCrossReferenceComplete()
     crossReferenceState.plusLibrarySupplement = QJsonArray();
     crossReferenceState.ownedGames = QJsonArray();
     crossReferenceState.productIdAliases.clear();
+    crossReferenceState.componentIdsByProductId.clear();
     crossReferenceState.catalogFetched = false;
     crossReferenceState.ownedGamesFetched = false;
 }

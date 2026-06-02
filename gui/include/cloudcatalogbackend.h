@@ -132,6 +132,7 @@ private:
         QJsonArray plusLibrarySupplement;
         QJsonArray ownedGames;
         QMap<QString, QString> productIdAliases;
+        QMap<QString, QStringList> componentIdsByProductId; // product_id -> all sibling entitlement ids (full list)
         bool catalogFetched;
         bool ownedGamesFetched;
     } crossReferenceState;
