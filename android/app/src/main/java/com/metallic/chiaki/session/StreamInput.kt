@@ -2,6 +2,8 @@ package com.metallic.chiaki.session
 
 import android.content.Context
 import android.hardware.*
+import android.os.Handler
+import android.os.Looper
 import android.view.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
@@ -16,7 +18,7 @@ class StreamInput(val context: Context, val preferences: Preferences)
 
 	val controllerState: ControllerState get()
 	{
-		val controllerState = sensorControllerState or keyControllerState or motionControllerState
+		var controllerState = sensorControllerState or keyControllerState or motionControllerState
 
 		val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 		@Suppress("DEPRECATION")
@@ -40,12 +42,20 @@ class StreamInput(val context: Context, val preferences: Preferences)
 		if(motionControllerState.r2State > 0U)
 			controllerState.r2State = motionControllerState.r2State
 
+		if(dpadTouchEnabled && !dpadRegular && dpadTouchIncrement > 0)
+		{
+			if(controllerState.buttons and DPAD_BUTTON_MASK != 0U)
+				controllerState = controllerState.copy(buttons = controllerState.buttons and DPAD_BUTTON_MASK.inv())
+			controllerState = controllerState or dpadTouchControllerState
+		}
+
 		return controllerState or touchControllerState
 	}
 
 	private val sensorControllerState = ControllerState() // from Motion Sensors
 	private val keyControllerState = ControllerState() // from KeyEvents
 	private val motionControllerState = ControllerState() // from MotionEvents
+	private val dpadTouchControllerState = ControllerState()
 	var touchControllerState = ControllerState()
 		set(value)
 		{
@@ -54,6 +64,53 @@ class StreamInput(val context: Context, val preferences: Preferences)
 		}
 
 	private val swapCrossMoon = preferences.swapCrossMoon
+	private val mapSelectToTouchpad = preferences.mapSelectToTouchpad
+	private val dpadTouchEnabled = preferences.dpadTouchEnabled
+	private val dpadTouchIncrement = if(dpadTouchEnabled) preferences.dpadTouchIncrement else 0
+	private val dpadTouchShortcut1 = shortcutMask(preferences.dpadTouchShortcut1)
+	private val dpadTouchShortcut2 = shortcutMask(preferences.dpadTouchShortcut2)
+	private val dpadTouchShortcut3 = shortcutMask(preferences.dpadTouchShortcut3)
+	private val dpadTouchShortcut4 = shortcutMask(preferences.dpadTouchShortcut4)
+
+	private val handler = Handler(Looper.getMainLooper())
+	private var dpadRegular = true
+	private var dpadRegularTouchSwitched = false
+	private var dpadTouchId = -1
+	private var dpadTouchX: UShort = 0U
+	private var dpadTouchY: UShort = 0U
+
+	private val touchpadMaxX = (ControllerState.TOUCHPAD_WIDTH - 1u).toUShort()
+	private val touchpadMaxY = (ControllerState.TOUCHPAD_HEIGHT - 1u).toUShort()
+	private val touchpadMidX = (ControllerState.TOUCHPAD_WIDTH / 2u).toUShort()
+	private val touchpadMidY = (ControllerState.TOUCHPAD_HEIGHT / 2u).toUShort()
+
+	private val dpadTouchUpdateRunnable = object: Runnable {
+		override fun run()
+		{
+			if(!dpadTouchEnabled || dpadRegular || dpadTouchIncrement <= 0 || dpadTouchId < 0)
+				return
+			val dpadHeld = (keyControllerState.buttons or motionControllerState.buttons) and DPAD_BUTTON_MASK
+			if(dpadHeld == 0U)
+				return
+			handleDpadTouchEvent(dpadHeld, placeholder = true)
+			controllerStateUpdated()
+			handler.postDelayed(this, DPAD_TOUCH_UPDATE_INTERVAL_MS)
+		}
+	}
+
+	private var dpadTouchStopScheduled = false
+	private val dpadTouchStopRunnable = Runnable {
+		dpadTouchStopScheduled = false
+		cancelDpadTouchUpdate()
+		stopDpadTouch()
+		controllerStateUpdated()
+	}
+
+	fun release()
+	{
+		cancelDpadTouchTimers()
+		stopDpadTouch()
+	}
 
 	private val sensorEventListener = object: SensorEventListener {
 		override fun onSensorChanged(event: SensorEvent)
@@ -130,11 +187,27 @@ class StreamInput(val context: Context, val preferences: Preferences)
 		{
 			KeyEvent.KEYCODE_BUTTON_L2 -> {
 				keyControllerState.l2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
+				processDpadTouch()
+				controllerStateUpdated()
 				return true
 			}
 			KeyEvent.KEYCODE_BUTTON_R2 -> {
 				keyControllerState.r2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
+				processDpadTouch()
+				controllerStateUpdated()
 				return true
+			}
+			KeyEvent.KEYCODE_BUTTON_SELECT -> {
+				if(mapSelectToTouchpad)
+				{
+					if(event.action == KeyEvent.ACTION_DOWN)
+						keyControllerState.buttons = keyControllerState.buttons or ControllerState.BUTTON_TOUCHPAD
+					else
+						keyControllerState.buttons = keyControllerState.buttons and ControllerState.BUTTON_TOUCHPAD.inv()
+					processDpadTouch()
+					controllerStateUpdated()
+					return true
+				}
 			}
 		}
 
@@ -169,6 +242,7 @@ class StreamInput(val context: Context, val preferences: Preferences)
 			}
 		}
 
+		processDpadTouch()
 		controllerStateUpdated()
 		return true
 	}
@@ -200,7 +274,202 @@ class StreamInput(val context: Context, val preferences: Preferences)
 					dpadButtons
 		}
 		//Log.i("StreamSession", "motionEvent => $motionControllerState")
+		processDpadTouch()
 		controllerStateUpdated()
 		return true
+	}
+
+	private fun processDpadTouch()
+	{
+		if(!dpadTouchEnabled)
+			return
+
+		val rawButtons = keyControllerState.buttons or motionControllerState.buttons
+		updateDpadModeToggle(rawButtons)
+
+		if(dpadTouchIncrement <= 0 || dpadRegular)
+		{
+			cancelDpadTouchUpdate()
+			if(dpadTouchId >= 0 && !dpadTouchStopScheduled)
+				scheduleDpadTouchStop()
+			return
+		}
+
+		val dpadHeld = rawButtons and DPAD_BUTTON_MASK
+		if(dpadHeld != 0U)
+		{
+			cancelDpadTouchStop()
+			handleDpadTouchEvent(dpadHeld, placeholder = false)
+		}
+		else
+		{
+			cancelDpadTouchUpdate()
+			if(dpadTouchId >= 0 && !dpadTouchStopScheduled)
+				scheduleDpadTouchStop()
+		}
+	}
+
+	private fun updateDpadModeToggle(buttons: UInt)
+	{
+		val comboActive =
+			(dpadTouchShortcut1 != 0U || dpadTouchShortcut2 != 0U || dpadTouchShortcut3 != 0U || dpadTouchShortcut4 != 0U) &&
+			(dpadTouchShortcut1 == 0U || (buttons and dpadTouchShortcut1) != 0U) &&
+			(dpadTouchShortcut2 == 0U || (buttons and dpadTouchShortcut2) != 0U) &&
+			(dpadTouchShortcut3 == 0U || (buttons and dpadTouchShortcut3) != 0U) &&
+			(dpadTouchShortcut4 == 0U || (buttons and dpadTouchShortcut4) != 0U)
+
+		if(comboActive)
+		{
+			if(!dpadRegularTouchSwitched)
+			{
+				dpadRegularTouchSwitched = true
+				dpadRegular = !dpadRegular
+				val modeLabel = if(dpadRegular) "D-pad: Regular" else "D-pad: Touchpad"
+				handler.post {
+					android.widget.Toast.makeText(context, modeLabel, android.widget.Toast.LENGTH_SHORT).show()
+				}
+				cancelDpadTouchTimers()
+				if(dpadRegular)
+					stopDpadTouch()
+			}
+		}
+		else
+			dpadRegularTouchSwitched = false
+	}
+
+	private fun handleDpadTouchEvent(dpadButtons: UInt, placeholder: Boolean)
+	{
+		val increment = dpadTouchIncrement.toUShort()
+
+		if(dpadButtons and ControllerState.BUTTON_DPAD_LEFT != 0U)
+		{
+			if(dpadTouchId < 0)
+			{
+				dpadTouchX = 0u.toUShort()
+				dpadTouchY = touchpadMidY
+				dpadTouchId = dpadTouchControllerState.startTouch(dpadTouchX, dpadTouchY)?.toInt() ?: -1
+				if(!placeholder)
+					scheduleDpadTouchUpdate()
+				return
+			}
+			cancelDpadTouchStop()
+			dpadTouchX = if(dpadTouchX < increment) 0u.toUShort() else (dpadTouchX - increment).toUShort()
+			dpadTouchControllerState.setTouchPos(dpadTouchId.toUByte(), dpadTouchX, dpadTouchY)
+			if(!placeholder)
+				scheduleDpadTouchUpdate()
+			return
+		}
+
+		if(dpadButtons and ControllerState.BUTTON_DPAD_RIGHT != 0U)
+		{
+			if(dpadTouchId < 0)
+			{
+				dpadTouchX = touchpadMaxX
+				dpadTouchY = touchpadMidY
+				dpadTouchId = dpadTouchControllerState.startTouch(dpadTouchX, dpadTouchY)?.toInt() ?: -1
+				if(!placeholder)
+					scheduleDpadTouchUpdate()
+				return
+			}
+			cancelDpadTouchStop()
+			dpadTouchX = if(dpadTouchX > touchpadMaxX - increment) touchpadMaxX else (dpadTouchX + increment).toUShort()
+			dpadTouchControllerState.setTouchPos(dpadTouchId.toUByte(), dpadTouchX, dpadTouchY)
+			if(!placeholder)
+				scheduleDpadTouchUpdate()
+			return
+		}
+
+		if(dpadButtons and ControllerState.BUTTON_DPAD_DOWN != 0U)
+		{
+			if(dpadTouchId < 0)
+			{
+				dpadTouchX = touchpadMidX
+				dpadTouchY = touchpadMaxY
+				dpadTouchId = dpadTouchControllerState.startTouch(dpadTouchX, dpadTouchY)?.toInt() ?: -1
+				if(!placeholder)
+					scheduleDpadTouchUpdate()
+				return
+			}
+			cancelDpadTouchStop()
+			dpadTouchY = if(dpadTouchY > touchpadMaxY - increment) touchpadMaxY else (dpadTouchY + increment).toUShort()
+			dpadTouchControllerState.setTouchPos(dpadTouchId.toUByte(), dpadTouchX, dpadTouchY)
+			if(!placeholder)
+				scheduleDpadTouchUpdate()
+			return
+		}
+
+		if(dpadButtons and ControllerState.BUTTON_DPAD_UP != 0U)
+		{
+			if(dpadTouchId < 0)
+			{
+				dpadTouchX = touchpadMidX
+				dpadTouchY = 0u.toUShort()
+				dpadTouchId = dpadTouchControllerState.startTouch(dpadTouchX, dpadTouchY)?.toInt() ?: -1
+				if(!placeholder)
+					scheduleDpadTouchUpdate()
+				return
+			}
+			cancelDpadTouchStop()
+			dpadTouchY = if(dpadTouchY < increment) 0u.toUShort() else (dpadTouchY - increment).toUShort()
+			dpadTouchControllerState.setTouchPos(dpadTouchId.toUByte(), dpadTouchX, dpadTouchY)
+			if(!placeholder)
+				scheduleDpadTouchUpdate()
+		}
+	}
+
+	private fun scheduleDpadTouchUpdate()
+	{
+		if(dpadTouchId < 0)
+			return
+		handler.removeCallbacks(dpadTouchUpdateRunnable)
+		handler.postDelayed(dpadTouchUpdateRunnable, DPAD_TOUCH_UPDATE_INTERVAL_MS)
+	}
+
+	private fun cancelDpadTouchUpdate()
+	{
+		handler.removeCallbacks(dpadTouchUpdateRunnable)
+	}
+
+	private fun scheduleDpadTouchStop()
+	{
+		handler.removeCallbacks(dpadTouchStopRunnable)
+		dpadTouchStopScheduled = true
+		handler.postDelayed(dpadTouchStopRunnable, NEW_DPAD_TOUCH_INTERVAL_MS)
+	}
+
+	private fun cancelDpadTouchStop()
+	{
+		handler.removeCallbacks(dpadTouchStopRunnable)
+		dpadTouchStopScheduled = false
+	}
+
+	private fun cancelDpadTouchTimers()
+	{
+		cancelDpadTouchUpdate()
+		cancelDpadTouchStop()
+	}
+
+	private fun stopDpadTouch()
+	{
+		if(dpadTouchId < 0)
+			return
+		dpadTouchControllerState.stopTouch(dpadTouchId.toUByte())
+		dpadTouchId = -1
+		dpadTouchX = 0u.toUShort()
+		dpadTouchY = 0u.toUShort()
+	}
+
+	companion object
+	{
+		private const val DPAD_TOUCH_UPDATE_INTERVAL_MS = 10L
+		private const val NEW_DPAD_TOUCH_INTERVAL_MS = 500L
+
+		private val DPAD_BUTTON_MASK = ControllerState.BUTTON_DPAD_LEFT or
+			ControllerState.BUTTON_DPAD_RIGHT or
+			ControllerState.BUTTON_DPAD_UP or
+			ControllerState.BUTTON_DPAD_DOWN
+
+		private fun shortcutMask(index: Int): UInt =
+			if(index > 0) (1 shl (index - 1)).toUInt() else 0U
 	}
 }

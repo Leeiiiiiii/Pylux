@@ -8,7 +8,8 @@
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary">
+        android:background="?attr/colorPrimary"
+        android:touchscreenBlocksFocus="false">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -187,8 +188,7 @@
                 android:descendantFocusability="afterDescendants"
                 android:focusable="true" />
 
-            <!-- Game Count (scrolls with list via clipToPadding) -->
-            <TextView
+            <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/gameCountText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -201,39 +201,6 @@
                 android:textColor="#4DFFFFFF"
                 android:fontFamily="sans-serif-medium"
                 android:text="0 games"
-                android:visibility="gone" />
-
-            <!-- Fast Scroller touch zone (wide invisible area on right side) -->
-            <View
-                android:id="@+id/fastScrollerTouchZone"
-                android:layout_width="48dp"
-                android:layout_height="match_parent"
-                android:layout_gravity="end|top"
-                android:visibility="gone" />
-
-            <!-- Fast Scroller (visual thumb indicator) -->
-            <View
-                android:id="@+id/fastScrollerThumb"
-                android:layout_width="12dp"
-                android:layout_height="50dp"
-                android:layout_gravity="end|top"
-                android:layout_marginEnd="4dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/fast_scroller_thumb_bg"
-                android:visibility="gone" />
-
-            <!-- Section Indicator (shows current letter while scrolling) -->
-            <TextView
-                android:id="@+id/sectionIndicator"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:textSize="48sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/white"
-                android:background="@drawable/section_indicator_bg"
-                android:elevation="8dp"
                 android:visibility="gone" />
 
             <LinearLayout

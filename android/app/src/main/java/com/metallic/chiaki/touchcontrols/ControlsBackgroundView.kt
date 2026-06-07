@@ -11,5 +11,6 @@ class ControlsBackgroundView @JvmOverloads constructor(
 	context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr)
 {
-	override fun onTouchEvent(event: MotionEvent) = true
+	// Do not consume touches in empty overlay areas — let them pass to the stream surface.
+	override fun onTouchEvent(event: MotionEvent) = false
 }

@@ -170,7 +170,7 @@
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Sign in to PSN"
+                android:text="Sign in"
                 android:textSize="22sp"
                 android:textStyle="bold"
                 android:textColor="?android:textColorPrimary"
@@ -179,7 +179,7 @@
             <com.google.android.material.textview.MaterialTextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Scan the QR code or visit xbgamestream.com/psstream on your phone and enter this code:"
+                android:text="Scan the QR code on your phone"
                 android:textSize="14sp"
                 android:textColor="?android:textColorSecondary"
                 android:textAlignment="center"

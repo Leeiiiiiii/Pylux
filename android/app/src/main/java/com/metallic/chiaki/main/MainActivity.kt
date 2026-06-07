@@ -42,6 +42,8 @@ class MainActivity : AppCompatActivity()
 	private lateinit var binding: ActivityMainBinding
 	private lateinit var preferences: Preferences
 	private var currentPage = 0
+	/** Timestamp of last card-level favorite toggle (used to debounce SELECT+MENU from PS Options). */
+	private var lastCardFavoriteToggleMs = 0L
 	private var integrityManager: AppIntegrityManager? = null
 
 	override fun onCreate(savedInstanceState: Bundle?)
@@ -88,12 +90,14 @@ class MainActivity : AppCompatActivity()
 
 		binding.root.post {
 			applyViewPagerPageFocusIsolation(currentPage)
-			if (isTv()) requestInitialMainTabFocus()
+			requestInitialMainTabFocus()
 			// In-app review: once per *new* Main instance (not every resume). Play throttles whether a sheet is shown.
 			if (savedInstanceState == null)
 				InAppReviewHelper.tryPromptIfEligible(this, preferences)
 		}
 	}
+
+	fun onCardFavoriteKeyToggled() { lastCardFavoriteToggleMs = System.currentTimeMillis() }
 
 	private fun setupNavigation()
 	{
@@ -103,6 +107,9 @@ class MainActivity : AppCompatActivity()
 		binding.viewPager.offscreenPageLimit = 1
 		// Disable swipe - only header buttons switch tabs (avoids accidental swipes when scrolling)
 		binding.viewPager.isUserInputEnabled = false
+		// ViewPager2 creates an internal RecyclerView that grabs focus and swallows D-pad events.
+		// Disable its focusability so focus falls through to actual content views.
+		binding.viewPager.getChildAt(0)?.isFocusable = false
 
 		// Mode icon click handlers (bound to FrameLayout containers for D-pad focus support)
 		binding.remotePlayButton.setOnClickListener {
@@ -138,23 +145,23 @@ class MainActivity : AppCompatActivity()
 
 		if (isTv()) {
 			binding.root.enableFocusableInTouchModeForTv(this)
-			val primaryFocusHighlight = View.OnFocusChangeListener { v, hasFocus ->
-				if (hasFocus) {
-					v.background = android.graphics.drawable.GradientDrawable().apply {
-						shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-						cornerRadius = 50f
-						setColor(0x30FFD700.toInt())
-						setStroke(3, 0xCCFFD700.toInt())
-					}
-				} else {
-					v.setBackgroundColor(0x00000000)
-				}
-			}
-			binding.remotePlayButton.onFocusChangeListener = primaryFocusHighlight
-			binding.cloudPlayButton.onFocusChangeListener = primaryFocusHighlight
-			binding.wifiIcon.onFocusChangeListener = primaryFocusHighlight
-			binding.settingsIcon.onFocusChangeListener = primaryFocusHighlight
 		}
+		val primaryFocusHighlight = View.OnFocusChangeListener { v, hasFocus ->
+			if (hasFocus) {
+				v.background = android.graphics.drawable.GradientDrawable().apply {
+					shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+					cornerRadius = 50f
+					setColor(0x30FFD700.toInt())
+					setStroke(3, 0xCCFFD700.toInt())
+				}
+			} else {
+				v.setBackgroundColor(0x00000000)
+			}
+		}
+		binding.remotePlayButton.onFocusChangeListener = primaryFocusHighlight
+		binding.cloudPlayButton.onFocusChangeListener = primaryFocusHighlight
+		binding.wifiIcon.onFocusChangeListener = primaryFocusHighlight
+		binding.settingsIcon.onFocusChangeListener = primaryFocusHighlight
 	}
 
 	/** Keyboard/gamepad routing across toolbar ↔ ViewPager; only the active tab’s list participates. */
@@ -163,6 +170,26 @@ class MainActivity : AppCompatActivity()
 		if (event.action != KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event)
 		if (event.keyCode == KeyEvent.KEYCODE_BACK) return super.dispatchKeyEvent(event)
 
+		// KEYCODE_MENU is consumed by the framework before it reaches individual views.
+		// For controllers that send MENU without SELECT (no preceding SELECT), toggle
+		// favorite directly. For PS-style controllers that send SELECT then MENU for the
+		// same button press, SELECT already toggled — debounce with 300 ms window.
+		if (event.keyCode == KeyEvent.KEYCODE_MENU) {
+			val cloudRv = if (currentPage == 1) window.decorView.findViewById<RecyclerView>(R.id.gamesRecyclerView) else null
+			val focused = currentFocus
+			if (cloudRv != null && focused != null) {
+				val itemView = cloudRv.findContainingItemView(focused)
+				if (itemView != null) {
+					val now = System.currentTimeMillis()
+					if (now - lastCardFavoriteToggleMs > 300) {
+						itemView.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BUTTON_SELECT))
+					}
+					return true
+				}
+			}
+			return super.dispatchKeyEvent(event)
+		}
+
 		if (refocusIfWrongViewPagerPage()) return true
 
 		val focused = currentFocus
@@ -170,15 +197,16 @@ class MainActivity : AppCompatActivity()
 		val hostRv = if (currentPage == 0) window.decorView.findViewById<RecyclerView>(R.id.hostsRecyclerView) else null
 
 		if (focused == null) {
+			// We only reach here while handling a D-pad/gamepad key, so the window is already in
+			// non-touch mode and a plain requestFocus() succeeds and shows the focus highlight.
+			// Do NOT set isFocusableInTouchMode here: that makes the views grab focus on the first
+			// finger tap (requiring a second tap to click). TV focusability is handled separately
+			// by enableFocusableInTouchModeForTv().
 			if (currentPage == 1) {
 				val lm = cloudRv?.layoutManager as? GridLayoutManager
-				lm?.findViewByPosition(lm.findFirstVisibleItemPosition())?.let {
-					it.isFocusableInTouchMode = true
-					it.requestFocusFromTouch()
-				}
+				lm?.findViewByPosition(lm.findFirstVisibleItemPosition())?.requestFocus()
 			} else {
-				binding.remotePlayButton.isFocusableInTouchMode = true
-				binding.remotePlayButton.requestFocusFromTouch()
+				binding.remotePlayButton.requestFocus()
 			}
 			return true
 		}
@@ -207,42 +235,30 @@ class MainActivity : AppCompatActivity()
 		val isSpeedDialItem = focused.id in speedDialIds
 		val isSpeedDialOpen = window.decorView.findViewById<View>(R.id.addManualButton)?.isShown == true
 
+		// These helpers run only during D-pad/gamepad key handling (non-touch mode), so requestFocus()
+		// is enough to move focus and show the highlight. No isFocusableInTouchMode here — see note above.
 		fun focusPrimaryHeader() {
 			val btn = if (currentPage == 0) binding.remotePlayButton else binding.cloudPlayButton
-			btn.isFocusableInTouchMode = true
-			btn.requestFocusFromTouch()
+			btn.requestFocus()
 		}
 
 		fun focusSecondaryHeader() {
-			window.decorView.findViewById<View>(R.id.catalogTabButton)?.let {
-				it.isFocusableInTouchMode = true
-				it.requestFocusFromTouch()
-			}
+			window.decorView.findViewById<View>(R.id.catalogTabButton)?.requestFocus()
 		}
 
 		fun focusFab() {
-			window.decorView.findViewById<View>(R.id.floatingActionButton)?.let {
-				it.isFocusableInTouchMode = true
-				it.requestFocusFromTouch()
-			}
+			window.decorView.findViewById<View>(R.id.floatingActionButton)?.requestFocus()
 		}
 
 		fun focusLastConsole() {
 			val count = hostRv?.adapter?.itemCount ?: 0
 			if (count <= 0) return
-			val lastView = hostRv?.layoutManager?.findViewByPosition(count - 1)
-			lastView?.let {
-				it.isFocusableInTouchMode = true
-				it.requestFocusFromTouch()
-			}
+			hostRv?.layoutManager?.findViewByPosition(count - 1)?.requestFocus()
 		}
 
 		fun focusLoginButton() {
 			window.decorView.findViewById<View>(R.id.loginButton)?.let {
-				if (it.isShown) {
-					it.isFocusableInTouchMode = true
-					it.requestFocusFromTouch()
-				}
+				if (it.isShown) it.requestFocus()
 			}
 		}
 
@@ -297,8 +313,7 @@ class MainActivity : AppCompatActivity()
 						// Remote Play: first console, or FAB if none
 						val firstHost = hostRv?.layoutManager?.findViewByPosition(0)
 						if (firstHost != null && (hostRv?.adapter?.itemCount ?: 0) > 0) {
-							firstHost.isFocusableInTouchMode = true
-							firstHost.requestFocusFromTouch()
+							firstHost.requestFocus()
 						} else {
 							focusFab()
 						}
@@ -311,8 +326,7 @@ class MainActivity : AppCompatActivity()
 					val lm    = cloudRv?.layoutManager as? GridLayoutManager
 					val first = lm?.findViewByPosition(lm.findFirstVisibleItemPosition())
 					if (first != null) {
-						first.isFocusableInTouchMode = true
-						first.requestFocusFromTouch()
+						first.requestFocus()
 						return true
 					}
 					focusLoginButton()
@@ -383,11 +397,8 @@ class MainActivity : AppCompatActivity()
 			focusedInCloud != null || focusedInHost != null ||
 			(focused != null && focused.id in secondaryIds) -> activeHeader.requestFocus()
 
-			// Already at primary header → confirm exit
-			focused == null || focused.id in primaryIds -> showExitConfirmation()
-
-			// Anything else (dialogs etc.) → default back behavior
-			else -> super.onBackPressed()
+			// Already at primary header (or nothing focused) → confirm exit
+			else -> showExitConfirmation()
 		}
 	}
 
@@ -466,17 +477,17 @@ class MainActivity : AppCompatActivity()
 		cloudRoot?.descendantFocusability =
 			if (selectedPage == 1) ViewGroup.FOCUS_BEFORE_DESCENDANTS
 			else ViewGroup.FOCUS_BLOCK_DESCENDANTS
+		// Only re-home focus if it's currently on the now-hidden page. requestFocus() no-ops in
+		// touch mode (mobile finger use), which is what we want; it succeeds in non-touch mode (TV/pad).
 		val focused = currentFocus
 		if (focused != null && cloudRoot != null && selectedPage == 0 && isDescendantOf(focused, cloudRoot))
 		{
-			binding.remotePlayButton.isFocusableInTouchMode = true
 			binding.remotePlayButton.requestFocus()
 		}
 		if (focused != null && remoteRoot != null && selectedPage == 1 && isDescendantOf(focused, remoteRoot))
 		{
 			if (!binding.cloudPlayButton.isGone)
 			{
-				binding.cloudPlayButton.isFocusableInTouchMode = true
 				binding.cloudPlayButton.requestFocus()
 			}
 		}
@@ -484,16 +495,13 @@ class MainActivity : AppCompatActivity()
 
 	private fun requestInitialMainTabFocus()
 	{
+		// requestFocus() succeeds only in non-touch mode (TV, or a connected controller), where the
+		// gold focus highlight is wanted. On a phone in touch mode it is a no-op, so the first finger
+		// tap still clicks on a single tap instead of just grabbing focus.
 		when (currentPage)
 		{
-			0 -> {
-				binding.remotePlayButton.isFocusableInTouchMode = true
-				binding.remotePlayButton.requestFocus()
-			}
-			1 -> if (!binding.cloudPlayButton.isGone) {
-				binding.cloudPlayButton.isFocusableInTouchMode = true
-				binding.cloudPlayButton.requestFocus()
-			}
+			0 -> binding.remotePlayButton.requestFocus()
+			1 -> if (!binding.cloudPlayButton.isGone) binding.cloudPlayButton.requestFocus()
 		}
 	}
 
@@ -506,8 +514,7 @@ class MainActivity : AppCompatActivity()
 			val cloudRoot = supportFragmentManager.fragments.filterIsInstance<CloudPlayFragment>().firstOrNull()?.view
 				?: return false
 			if (!isDescendantOf(focused, cloudRoot)) return false
-			binding.remotePlayButton.isFocusableInTouchMode = true
-			binding.remotePlayButton.requestFocusFromTouch()
+			binding.remotePlayButton.requestFocus()
 			return true
 		}
 		val remoteRoot = supportFragmentManager.fragments.filterIsInstance<RemotePlayFragment>().firstOrNull()?.view
@@ -515,8 +522,7 @@ class MainActivity : AppCompatActivity()
 		if (!isDescendantOf(focused, remoteRoot)) return false
 		if (!binding.cloudPlayButton.isGone)
 		{
-			binding.cloudPlayButton.isFocusableInTouchMode = true
-			binding.cloudPlayButton.requestFocusFromTouch()
+			binding.cloudPlayButton.requestFocus()
 		}
 		return true
 	}

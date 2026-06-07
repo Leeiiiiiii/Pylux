@@ -16,9 +16,14 @@ import com.pylux.stream.databinding.ItemCloudGameBinding
 class CloudGameAdapter(
 	private val onGameClick: (CloudGame) -> Unit,
 	private val onFavoriteClick: (CloudGame, Boolean) -> Unit,
-	private val isFavorite: (String) -> Boolean
+	private val isFavorite: (String) -> Boolean,
+	val onFavoriteKeyToggled: (() -> Unit)? = null
 ) : RecyclerView.Adapter<CloudGameAdapter.CloudGameViewHolder>()
 {
+	companion object {
+		const val PAYLOAD_RELOAD_IMAGE = "reload_image"
+	}
+
 	init { setHasStableIds(true) }
 
 	var games: List<CloudGame> = emptyList()
@@ -47,6 +52,22 @@ class CloudGameAdapter(
 			false
 		)
 		binding.root.enableFocusableInTouchModeForTv(parent.context)
+
+		// MaterialCardView.drawableStateChanged() only updates ripple, not stroke.
+		// Drive the focus stroke imperatively so it works in all Android touch modes.
+		val focusedStrokeColor = 0xFF009FE3.toInt()
+		val focusedStrokeWidth = (3 * parent.context.resources.displayMetrics.density + 0.5f).toInt()
+		binding.root.setOnFocusChangeListener { _, hasFocus ->
+			val card = binding.root as? com.google.android.material.card.MaterialCardView ?: return@setOnFocusChangeListener
+			if (hasFocus) {
+				card.strokeColor = focusedStrokeColor
+				card.strokeWidth = focusedStrokeWidth
+			} else {
+				card.strokeColor = android.graphics.Color.TRANSPARENT
+				card.strokeWidth = 0
+			}
+		}
+
 		return CloudGameViewHolder(binding)
 	}
 
@@ -57,12 +78,10 @@ class CloudGameAdapter(
 
 	override fun onBindViewHolder(holder: CloudGameViewHolder, position: Int, payloads: MutableList<Any>)
 	{
-		if (payloads.contains(FastScrollerHelper.PAYLOAD_RELOAD_IMAGE)) {
-			// Only reload the image — don't rebind the whole card (avoids flash)
+		if (payloads.contains(PAYLOAD_RELOAD_IMAGE))
 			holder.reloadImage(games[position])
-		} else {
+		else
 			super.onBindViewHolder(holder, position, payloads)
-		}
 	}
 
 	override fun onViewRecycled(holder: CloudGameViewHolder)
@@ -97,6 +116,12 @@ class CloudGameAdapter(
 		fun bind(game: CloudGame)
 		{
 			binding.gameNameTextView.text = game.name
+			// Reset focus stroke immediately — recycled views may carry stale blue border
+			val card = binding.root as? com.google.android.material.card.MaterialCardView
+			if (card != null && !card.hasFocus()) {
+				card.strokeColor = android.graphics.Color.TRANSPARENT
+				card.strokeWidth = 0
+			}
 			binding.gamePlatformTextView.text = when (game.platform.lowercase()) {
 				"ps3" -> "3"
 				"ps4" -> "4"
@@ -129,9 +154,6 @@ class CloudGameAdapter(
 			}
 			else
 			{
-				// During fast scroll: only serve from memory cache (no network/disk I/O).
-				// This prevents OOM from hundreds of concurrent image loads while flinging.
-				// No crossfade to prevent flash when recycled views rebind.
 				binding.gameImageView.load(game.imageUrl) {
 					memoryCachePolicy(CachePolicy.ENABLED)
 					diskCachePolicy(if (isScrollingFast) CachePolicy.DISABLED else CachePolicy.ENABLED)
@@ -159,8 +181,9 @@ class CloudGameAdapter(
 			}
 			binding.root.setOnKeyListener { _, keyCode, event ->
 				if (event.action == android.view.KeyEvent.ACTION_DOWN &&
-					keyCode == android.view.KeyEvent.KEYCODE_MENU) {
+					keyCode == android.view.KeyEvent.KEYCODE_BUTTON_SELECT) {
 					toggleFavorite()
+					onFavoriteKeyToggled?.invoke()
 					true
 				} else {
 					false

@@ -172,6 +172,77 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        app:key="category_touchpad_emulation"
+        app:title="@string/preferences_category_title_touchpad_emulation">
+
+        <SwitchPreference
+            app:key="@string/preferences_map_select_to_touchpad_key"
+            app:title="@string/preferences_map_select_to_touchpad_title"
+            app:summary="@string/preferences_map_select_to_touchpad_summary"
+            app:defaultValue="false"
+            app:icon="@drawable/ic_gamepad" />
+
+        <SwitchPreference
+            app:key="@string/preferences_dpad_touch_enabled_key"
+            app:title="@string/preferences_dpad_touch_enabled_title"
+            app:summary="@string/preferences_dpad_touch_enabled_summary"
+            app:defaultValue="true"
+            app:icon="@drawable/ic_gamepad" />
+
+        <SeekBarPreference
+            app:key="@string/preferences_dpad_touch_increment_key"
+            app:title="@string/preferences_dpad_touch_increment_title"
+            app:summary="@string/preferences_dpad_touch_increment_summary"
+            app:dependency="@string/preferences_dpad_touch_enabled_key"
+            app:min="1"
+            android:max="1079"
+            app:seekBarIncrement="1"
+            app:defaultValue="30"
+            app:showSeekBarValue="true"
+            app:icon="@drawable/ic_gamepad" />
+
+        <ListPreference
+            app:key="@string/preferences_dpad_touch_shortcut1_key"
+            app:title="@string/preferences_dpad_touch_shortcut1_title"
+            app:summary="%s"
+            app:dependency="@string/preferences_dpad_touch_enabled_key"
+            app:entries="@array/dpad_touch_button_entries"
+            app:entryValues="@array/dpad_touch_button_values"
+            app:defaultValue="9"
+            app:icon="@drawable/ic_gamepad" />
+
+        <ListPreference
+            app:key="@string/preferences_dpad_touch_shortcut2_key"
+            app:title="@string/preferences_dpad_touch_shortcut2_title"
+            app:summary="%s"
+            app:dependency="@string/preferences_dpad_touch_enabled_key"
+            app:entries="@array/dpad_touch_button_entries"
+            app:entryValues="@array/dpad_touch_button_values"
+            app:defaultValue="10"
+            app:icon="@drawable/ic_gamepad" />
+
+        <ListPreference
+            app:key="@string/preferences_dpad_touch_shortcut3_key"
+            app:title="@string/preferences_dpad_touch_shortcut3_title"
+            app:summary="%s"
+            app:dependency="@string/preferences_dpad_touch_enabled_key"
+            app:entries="@array/dpad_touch_button_entries"
+            app:entryValues="@array/dpad_touch_button_values"
+            app:defaultValue="7"
+            app:icon="@drawable/ic_gamepad" />
+
+        <ListPreference
+            app:key="@string/preferences_dpad_touch_shortcut4_key"
+            app:title="@string/preferences_dpad_touch_shortcut4_title"
+            app:summary="%s"
+            app:dependency="@string/preferences_dpad_touch_enabled_key"
+            app:entries="@array/dpad_touch_button_entries"
+            app:entryValues="@array/dpad_touch_button_values"
+            app:defaultValue="0"
+            app:icon="@drawable/ic_gamepad" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
         app:key="category_export"
         app:title="@string/preferences_category_title_export">
         <Preference

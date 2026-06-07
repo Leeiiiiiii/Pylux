@@ -29,6 +29,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import android.graphics.Rect
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
@@ -56,7 +57,6 @@ class CloudPlayFragment : Fragment()
 	private lateinit var binding: FragmentCloudPlayBinding
 	private lateinit var adapter: CloudGameAdapter
 	private lateinit var preferences: Preferences
-	private lateinit var fastScrollerHelper: FastScrollerHelper
 
 	// Cloud sub-tabs now in secondary header (binding.cloudSubHeader)
 	
@@ -103,10 +103,11 @@ class CloudPlayFragment : Fragment()
 	override fun onDestroyView()
 	{
 		super.onDestroyView()
-		// Cleanup fast scroller
-		if (::fastScrollerHelper.isInitialized) {
-			fastScrollerHelper.cleanup()
-		}
+		binding.gamesRecyclerView.removeCallbacks(focusFirstGameRunnable1)
+		binding.gamesRecyclerView.removeCallbacks(focusFirstGameRunnable2)
+		binding.gamesRecyclerView.removeCallbacks(scrollIdleRunnable)
+		binding.gamesRecyclerView.removeOnScrollListener(scrollThrottleListener)
+		hasAutoFocusedGames = false
 		// Unlock orientation if it was locked (e.g., dialog was showing)
 		if (savedOrientation != -1) {
 			requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
@@ -317,7 +318,7 @@ class CloudPlayFragment : Fragment()
 		binding.gamesRecyclerView.adapter = null
 		
 		// Recreate layout manager to ensure fresh state
-		val newLayoutManager = GridLayoutManager(requireContext(), spanCount)
+		val newLayoutManager = InstantScrollGridLayoutManager(spanCount)
 		binding.gamesRecyclerView.layoutManager = newLayoutManager
 		
 		// Reattach adapter
@@ -377,6 +378,43 @@ class CloudPlayFragment : Fragment()
 	}
 	
 	private var isSearchExpanded = false
+	private var hasAutoFocusedGames = false
+	private val scrollIdleRunnable = Runnable {
+		adapter.isScrollingFast = false
+		// After fast-scroll, reload images for visible cards that showed placeholders
+		// (disk/network was bypassed during scroll to prevent OOM).
+		val lm = binding.gamesRecyclerView.layoutManager as? GridLayoutManager ?: return@Runnable
+		val first = lm.findFirstVisibleItemPosition()
+		val last = lm.findLastVisibleItemPosition()
+		if (first >= 0 && last >= first)
+			adapter.notifyItemRangeChanged(first, last - first + 1, CloudGameAdapter.PAYLOAD_RELOAD_IMAGE)
+	}
+	private val scrollThrottleListener = object : RecyclerView.OnScrollListener() {
+		override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+			when (newState) {
+				RecyclerView.SCROLL_STATE_DRAGGING,
+				RecyclerView.SCROLL_STATE_SETTLING -> {
+					recyclerView.removeCallbacks(scrollIdleRunnable)
+					adapter.isScrollingFast = true
+				}
+				RecyclerView.SCROLL_STATE_IDLE -> {
+					recyclerView.removeCallbacks(scrollIdleRunnable)
+					recyclerView.postDelayed(scrollIdleRunnable, 250)
+				}
+			}
+		}
+	}
+	private val focusFirstGameRunnable1 = Runnable {
+		if (adapter.itemCount > 0) {
+			val layoutManager = binding.gamesRecyclerView.layoutManager as? GridLayoutManager
+			layoutManager?.scrollToPosition(0)
+			binding.gamesRecyclerView.postDelayed(focusFirstGameRunnable2, 50)
+		}
+	}
+	private val focusFirstGameRunnable2 = Runnable {
+		val layoutManager = binding.gamesRecyclerView.layoutManager as? GridLayoutManager
+		layoutManager?.findViewByPosition(0)?.requestFocus()
+	}
 	
 	private fun collapseSearchBar()
 	{
@@ -875,7 +913,6 @@ class CloudPlayFragment : Fragment()
 		
 		adapter.games = sortedGames
 		updateEmptyState(sortedGames.isEmpty())
-		updateFastScrollerVisibility()
 	}
 
 	private fun setupRecyclerView()
@@ -883,46 +920,28 @@ class CloudPlayFragment : Fragment()
 		adapter = CloudGameAdapter(
 			onGameClick = this::onGameClicked,
 			onFavoriteClick = this::onGameFavoriteToggled,
-			isFavorite = { productId -> preferences.isFavoriteGame(productId) }
+			isFavorite = { productId -> preferences.isFavoriteGame(productId) },
+			onFavoriteKeyToggled = {
+				(activity as? MainActivity)?.onCardFavoriteKeyToggled()
+			}
 		)
 		binding.gamesRecyclerView.adapter = adapter
 		binding.gamesRecyclerView.setHasFixedSize(true)
 		binding.gamesRecyclerView.setItemViewCacheSize(20)
+		binding.gamesRecyclerView.isNestedScrollingEnabled = false
 		binding.gamesRecyclerView.descendantFocusability = android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS
+		binding.gamesRecyclerView.addOnScrollListener(scrollThrottleListener)
 		val spanCount = calculateSpanCount()
-		binding.gamesRecyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
-
-		// Setup fast scroller
-		setupFastScroller()
-	}
-	
-	private fun setupFastScroller()
-	{
-		fastScrollerHelper = FastScrollerHelper(
-			recyclerView = binding.gamesRecyclerView,
-			thumbView = binding.fastScrollerThumb,
-			touchZone = binding.fastScrollerTouchZone,
-			sectionIndicator = binding.sectionIndicator,
-			gameCountText = binding.gameCountText,
-			adapter = adapter,
-			gamesProvider = { adapter.games }
-		)
-		fastScrollerHelper.setup()
-	}
-	
-	private fun updateFastScrollerVisibility()
-	{
-		fastScrollerHelper.updateVisibility()
+		binding.gamesRecyclerView.layoutManager = InstantScrollGridLayoutManager(spanCount)
 	}
 
-	/** Column count from screen width (~180dp per card, 2–4 columns). */
+	/** Column count from screen width (~160dp per card, 2–5 columns). */
 	private fun calculateSpanCount(): Int {
 		val displayMetrics = resources.displayMetrics
 		val screenWidthDp = displayMetrics.widthPixels / displayMetrics.density
-		val cardWidthDp = 180 // Target card width in dp (bigger cards)
+		val cardWidthDp = 160 // Target card width in dp
 		val spanCount = (screenWidthDp / cardWidthDp).toInt()
-		// Ensure at least 2 columns, maximum 4 columns for bigger cards
-		return spanCount.coerceIn(2, 4)
+		return spanCount.coerceIn(2, 5)
 	}
 	
 	private fun onGameFavoriteToggled(game: CloudGame, isFavorite: Boolean)
@@ -1002,7 +1021,9 @@ class CloudPlayFragment : Fragment()
 			adapter.games = sortedGames
 			
 			updateEmptyState(sortedGames.isEmpty())
-			updateFastScrollerVisibility()
+			val count = sortedGames.size
+			binding.gameCountText.text = "$count ${if (count == 1) "game" else "games"}"
+			binding.gameCountText.visibility = if (count > 0) View.VISIBLE else View.GONE
 			
 			// Auto-focus first item after games are loaded, but not while search bar is active
 			if (sortedGames.isNotEmpty() && !isSearchExpanded) {
@@ -1044,18 +1065,15 @@ class CloudPlayFragment : Fragment()
 	
 	private fun focusFirstGame()
 	{
-		binding.gamesRecyclerView.postDelayed({
-			if (adapter.itemCount > 0) {
-				val layoutManager = binding.gamesRecyclerView.layoutManager as? androidx.recyclerview.widget.GridLayoutManager
-				// Scroll to position first to ensure it's visible
-				layoutManager?.scrollToPosition(0)
-				// Then request focus with another slight delay for the view to be ready
-				binding.gamesRecyclerView.postDelayed({
-					val firstView = layoutManager?.findViewByPosition(0)
-					firstView?.requestFocus()
-				}, 50)
-			}
-		}, 100)
+		// Only auto-focus on true initial load — skip if any view in the fragment
+		// already has focus (user navigated to a header, sort button, etc.) or if
+		// we already auto-focused once this session.
+		if (hasAutoFocusedGames) return
+		if (view?.findFocus() != null) return
+		hasAutoFocusedGames = true
+		binding.gamesRecyclerView.removeCallbacks(focusFirstGameRunnable1)
+		binding.gamesRecyclerView.removeCallbacks(focusFirstGameRunnable2)
+		binding.gamesRecyclerView.postDelayed(focusFirstGameRunnable1, 100)
 	}
 
 	private fun showError(message: String)
@@ -1614,6 +1632,23 @@ class CloudPlayFragment : Fragment()
 				allocationGameImageView = null
 			}, 300)
 		}
+	}
+
+	/**
+	 * GridLayoutManager that forces instant (non-smooth) scroll when D-pad focus moves to an
+	 * off-screen item.  The default smooth-scroll behaviour lets multiple fast D-pad presses queue
+	 * up, causing the grid to overshoot and leave the focused card off-screen.
+	 */
+	private inner class InstantScrollGridLayoutManager(spanCount: Int) :
+		GridLayoutManager(requireContext(), spanCount) {
+
+		override fun requestChildRectangleOnScreen(
+			parent: RecyclerView,
+			child: View,
+			rect: Rect,
+			immediate: Boolean,
+			focusedChildVisible: Boolean
+		): Boolean = super.requestChildRectangleOnScreen(parent, child, rect, true, focusedChildVisible)
 	}
 }
 

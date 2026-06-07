@@ -116,7 +116,18 @@ class AnalogStickView @JvmOverloads constructor(
 
 	override fun onTouchEvent(event: MotionEvent): Boolean
 	{
+		when(event.actionMasked)
+		{
+			MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+				val index = event.actionIndex
+				if(!isInside(event.getX(index), event.getY(index)))
+					return false
+			}
+		}
 		touchTracker.touchEvent(event)
 		return true
 	}
+
+	private fun isInside(x: Float, y: Float) =
+		x >= 0f && x < width.toFloat() && y >= 0f && y < height.toFloat()
 }

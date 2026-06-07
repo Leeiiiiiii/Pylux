@@ -29,6 +29,7 @@ import com.metallic.chiaki.discovery.PsnDiscoveryManager
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.addTo
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class DataStore(val preferences: Preferences): PreferenceDataStore()
 {
@@ -36,6 +37,8 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 	{
 		preferences.logVerboseKey -> preferences.logVerbose
 		preferences.swapCrossMoonKey -> preferences.swapCrossMoon
+		preferences.mapSelectToTouchpadKey -> preferences.mapSelectToTouchpad
+		preferences.dpadTouchEnabledKey -> preferences.dpadTouchEnabled
 		preferences.rumbleEnabledKey -> preferences.rumbleEnabled
 		preferences.motionEnabledKey -> preferences.motionEnabled
 		preferences.buttonHapticEnabledKey -> preferences.buttonHapticEnabled
@@ -48,6 +51,8 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		{
 			preferences.logVerboseKey -> preferences.logVerbose = value
 			preferences.swapCrossMoonKey -> preferences.swapCrossMoon = value
+			preferences.mapSelectToTouchpadKey -> preferences.mapSelectToTouchpad = value
+			preferences.dpadTouchEnabledKey -> preferences.dpadTouchEnabled = value
 			preferences.rumbleEnabledKey -> preferences.rumbleEnabled = value
 			preferences.motionEnabledKey -> preferences.motionEnabled = value
 			preferences.buttonHapticEnabledKey -> preferences.buttonHapticEnabled = value
@@ -64,6 +69,10 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		preferences.cloudDatacenterPscloudKey -> preferences.getCloudDatacenterPscloud()
 		preferences.cloudResolutionPscloudKey -> preferences.getCloudResolutionPscloud().toString()
 		preferences.cloudResolutionPsnowKey -> preferences.getCloudResolutionPsnow().toString()
+		preferences.dpadTouchShortcut1Key -> preferences.dpadTouchShortcut1.toString()
+		preferences.dpadTouchShortcut2Key -> preferences.dpadTouchShortcut2.toString()
+		preferences.dpadTouchShortcut3Key -> preferences.dpadTouchShortcut3.toString()
+		preferences.dpadTouchShortcut4Key -> preferences.dpadTouchShortcut4.toString()
 		else -> defValue
 	}
 
@@ -91,6 +100,10 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 			preferences.cloudDatacenterPscloudKey -> preferences.setCloudDatacenterPscloud(value ?: "Auto")
 			preferences.cloudResolutionPscloudKey -> preferences.setCloudResolutionPscloud(value?.toIntOrNull() ?: 720)
 			preferences.cloudResolutionPsnowKey -> preferences.setCloudResolutionPsnow(value?.toIntOrNull() ?: 720)
+			preferences.dpadTouchShortcut1Key -> preferences.dpadTouchShortcut1 = value?.toIntOrNull() ?: Preferences.DPAD_TOUCH_SHORTCUT1_DEFAULT
+			preferences.dpadTouchShortcut2Key -> preferences.dpadTouchShortcut2 = value?.toIntOrNull() ?: Preferences.DPAD_TOUCH_SHORTCUT2_DEFAULT
+			preferences.dpadTouchShortcut3Key -> preferences.dpadTouchShortcut3 = value?.toIntOrNull() ?: Preferences.DPAD_TOUCH_SHORTCUT3_DEFAULT
+			preferences.dpadTouchShortcut4Key -> preferences.dpadTouchShortcut4 = value?.toIntOrNull() ?: Preferences.DPAD_TOUCH_SHORTCUT4_DEFAULT
 		}
 	}
 
@@ -98,6 +111,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 	{
 		preferences.cloudBitratePscloudKey -> preferences.getCloudBitratePscloud() / 1000
 		preferences.cloudBitratePsnowKey -> preferences.getCloudBitratePsnow() / 1000
+		preferences.dpadTouchIncrementKey -> preferences.dpadTouchIncrement
 		else -> defValue
 	}
 
@@ -107,6 +121,7 @@ class DataStore(val preferences: Preferences): PreferenceDataStore()
 		{
 			preferences.cloudBitratePscloudKey -> preferences.setCloudBitratePscloud(value * 1000)
 			preferences.cloudBitratePsnowKey -> preferences.setCloudBitratePsnow(value * 1000)
+			preferences.dpadTouchIncrementKey -> preferences.dpadTouchIncrement = value
 		}
 	}
 }
@@ -201,6 +216,10 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 		bindCloudBitratePreference(
 			preferenceScreen.findPreference(getString(R.string.preferences_cloud_bitrate_psnow_key)),
 			preferences
+		)
+
+		bindDpadTouchIncrementPreference(
+			preferenceScreen.findPreference(getString(R.string.preferences_dpad_touch_increment_key))
 		)
 
 		val bitratePreference = preferenceScreen.findPreference<EditTextPreference>(getString(R.string.preferences_bitrate_key))
@@ -396,6 +415,15 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 		}
 		preference.summaryProvider = Preference.SummaryProvider<SeekBarPreference> { pref ->
 			getString(summaryRes, pref.value)
+		}
+	}
+
+	private fun bindDpadTouchIncrementPreference(preference: SeekBarPreference?)
+	{
+		if (preference == null) return
+		preference.summaryProvider = Preference.SummaryProvider<SeekBarPreference> { pref ->
+			val mm = String.format(Locale.US, "%.1f", pref.value / 100f)
+			getString(R.string.preferences_dpad_touch_increment_summary, pref.value, mm)
 		}
 	}
 

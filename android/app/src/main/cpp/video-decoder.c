@@ -146,6 +146,7 @@ bool android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, in
 	// Ignore frames_lost and frame_recovered parameters for now - Android decoder handles frame loss internally
 	(void)frames_lost;
 	(void)frame_recovered;
+
 	chiaki_mutex_lock(&decoder->codec_mutex);
 
 	if(!decoder->codec)
@@ -156,12 +157,18 @@ bool android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, in
 
 	while(buf_size > 0)
 	{
-		ssize_t codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, INPUT_BUFFER_TIMEOUT_MS * 1000);
+		ssize_t codec_buf_index = -1;
+		for(int attempt = 0; attempt < 3; attempt++)
+		{
+			codec_buf_index = AMediaCodec_dequeueInputBuffer(decoder->codec, INPUT_BUFFER_TIMEOUT_MS * 1000);
+			if(codec_buf_index >= 0)
+				break;
+		}
 		if(codec_buf_index < 0)
 		{
 			CHIAKI_LOGE(decoder->log, "Failed to get input buffer");
 			r = false;
-			goto beach;
+			break;
 		}
 
 		size_t codec_buf_size;
@@ -173,14 +180,13 @@ bool android_chiaki_video_decoder_video_sample(uint8_t *buf, size_t buf_size, in
 			codec_sample_size = codec_buf_size;
 		}
 		memcpy(codec_buf, buf, codec_sample_size);
-		media_status_t r = AMediaCodec_queueInputBuffer(decoder->codec, (size_t)codec_buf_index, 0, codec_sample_size, decoder->timestamp_cur++, 0); // timestamp just raised by 1 for maximum realtime
-		if(r != AMEDIA_OK)
+		media_status_t status = AMediaCodec_queueInputBuffer(decoder->codec, (size_t)codec_buf_index, 0, codec_sample_size, decoder->timestamp_cur++, 0); // timestamp just raised by 1 for maximum realtime
+		if(status != AMEDIA_OK)
 		{
-			CHIAKI_LOGE(decoder->log, "AMediaCodec_queueInputBuffer() failed: %d", (int)r);
+			CHIAKI_LOGE(decoder->log, "AMediaCodec_queueInputBuffer() failed: %d", (int)status);
 		}
 		buf += codec_sample_size;
 		buf_size -= codec_sample_size;
-
 	}
 
 beach:

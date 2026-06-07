@@ -135,19 +135,27 @@ class TouchpadView @JvmOverloads constructor(
 				}
 			}
 			MotionEvent.ACTION_MOVE -> {
+				val staleIds = mutableListOf<Int>()
 				val changed = pointerTouches.entries.fold(false) { acc, it ->
 					val index = event.findPointerIndex(it.key)
-					if(index < 0)
+					if(index < 0) {
+						staleIds.add(it.key)
 						acc
-					else
-					{
-						it.value.onMove(event.getX(event.actionIndex), event.getY(event.actionIndex))
+					} else {
+						it.value.onMove(event.getX(index), event.getY(index))
 						acc || state.setTouchPos(it.value.stateId, touchX(event, index), touchY(event, index))
 					}
 				}
-				if(changed)
+				staleIds.forEach { id ->
+					pointerTouches.remove(id)?.let { t ->
+						removeCallbacks(t.startButtonHoldRunnable)
+						state.stopTouch(t.stateId)
+					}
+				}
+				if(changed || staleIds.isNotEmpty())
 					triggerStateChanged()
 			}
+			MotionEvent.ACTION_CANCEL -> cancelAllTouches()
 		}
 		return true
 	}
@@ -158,6 +166,21 @@ class TouchpadView @JvmOverloads constructor(
 		removeCallbacks(shortButtonPressLiftRunnable)
 		state.buttons = state.buttons or ControllerState.BUTTON_TOUCHPAD
 		postDelayed(shortButtonPressLiftRunnable, SHORT_BUTTON_PRESS_DURATION_MS)
+	}
+
+	private fun cancelAllTouches()
+	{
+		removeCallbacks(shortButtonPressLiftRunnable)
+		pointerTouches.forEach { (_, touch) ->
+			removeCallbacks(touch.startButtonHoldRunnable)
+			state.stopTouch(touch.stateId)
+		}
+		pointerTouches.clear()
+		shortPressingTouches.forEach { touch -> state.stopTouch(touch.stateId) }
+		shortPressingTouches = listOf()
+		buttonHeld = false
+		state.buttons = state.buttons and ControllerState.BUTTON_TOUCHPAD.inv()
+		triggerStateChanged()
 	}
 
 	private fun triggerStateChanged()

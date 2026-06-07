@@ -149,7 +149,7 @@ CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_alloc_frame(ChiakiFrameProc
 
 CHIAKI_EXPORT ChiakiErrorCode chiaki_frame_processor_put_unit(ChiakiFrameProcessor *frame_processor, ChiakiTakionAVPacket *packet)
 {
-	if(packet->unit_index > frame_processor->unit_slots_size)
+	if(packet->unit_index >= frame_processor->unit_slots_size)
 	{
 		CHIAKI_LOGE(frame_processor->log, "Packet's unit index is too high");
 		return CHIAKI_ERR_INVALID_DATA;

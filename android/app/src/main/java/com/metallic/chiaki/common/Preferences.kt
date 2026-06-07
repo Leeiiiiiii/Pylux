@@ -54,6 +54,14 @@ class Preferences(context: Context)
 		const val CLOUD_BITRATE_MIN_KBPS = 2000
 		const val CLOUD_BITRATE_MAX_KBPS = 200000
 		const val CLOUD_BITRATE_DEFAULT_KBPS = 20000
+
+		const val DPAD_TOUCH_INCREMENT_MIN = 1
+		const val DPAD_TOUCH_INCREMENT_MAX = 1079
+		const val DPAD_TOUCH_INCREMENT_DEFAULT = 30
+		const val DPAD_TOUCH_SHORTCUT1_DEFAULT = 9
+		const val DPAD_TOUCH_SHORTCUT2_DEFAULT = 10
+		const val DPAD_TOUCH_SHORTCUT3_DEFAULT = 7
+		const val DPAD_TOUCH_SHORTCUT4_DEFAULT = 0
 	}
 
 	private val appContext = context.applicationContext
@@ -111,6 +119,42 @@ class Preferences(context: Context)
 	var swapCrossMoon
 		get() = sharedPreferences.getBoolean(swapCrossMoonKey, false)
 		set(value) { sharedPreferences.edit().putBoolean(swapCrossMoonKey, value).apply() }
+
+	val mapSelectToTouchpadKey get() = resources.getString(R.string.preferences_map_select_to_touchpad_key)
+	var mapSelectToTouchpad
+		get() = sharedPreferences.getBoolean(mapSelectToTouchpadKey, false)
+		set(value) { sharedPreferences.edit().putBoolean(mapSelectToTouchpadKey, value).apply() }
+
+	val dpadTouchEnabledKey get() = resources.getString(R.string.preferences_dpad_touch_enabled_key)
+	var dpadTouchEnabled
+		get() = sharedPreferences.getBoolean(dpadTouchEnabledKey, true)
+		set(value) { sharedPreferences.edit().putBoolean(dpadTouchEnabledKey, value).apply() }
+
+	val dpadTouchIncrementKey get() = resources.getString(R.string.preferences_dpad_touch_increment_key)
+	var dpadTouchIncrement
+		get() = sharedPreferences.getInt(dpadTouchIncrementKey, DPAD_TOUCH_INCREMENT_DEFAULT)
+			.coerceIn(DPAD_TOUCH_INCREMENT_MIN, DPAD_TOUCH_INCREMENT_MAX)
+		set(value) { sharedPreferences.edit().putInt(dpadTouchIncrementKey, value.coerceIn(DPAD_TOUCH_INCREMENT_MIN, DPAD_TOUCH_INCREMENT_MAX)).apply() }
+
+	val dpadTouchShortcut1Key get() = resources.getString(R.string.preferences_dpad_touch_shortcut1_key)
+	var dpadTouchShortcut1
+		get() = sharedPreferences.getInt(dpadTouchShortcut1Key, DPAD_TOUCH_SHORTCUT1_DEFAULT)
+		set(value) { sharedPreferences.edit().putInt(dpadTouchShortcut1Key, value).apply() }
+
+	val dpadTouchShortcut2Key get() = resources.getString(R.string.preferences_dpad_touch_shortcut2_key)
+	var dpadTouchShortcut2
+		get() = sharedPreferences.getInt(dpadTouchShortcut2Key, DPAD_TOUCH_SHORTCUT2_DEFAULT)
+		set(value) { sharedPreferences.edit().putInt(dpadTouchShortcut2Key, value).apply() }
+
+	val dpadTouchShortcut3Key get() = resources.getString(R.string.preferences_dpad_touch_shortcut3_key)
+	var dpadTouchShortcut3
+		get() = sharedPreferences.getInt(dpadTouchShortcut3Key, DPAD_TOUCH_SHORTCUT3_DEFAULT)
+		set(value) { sharedPreferences.edit().putInt(dpadTouchShortcut3Key, value).apply() }
+
+	val dpadTouchShortcut4Key get() = resources.getString(R.string.preferences_dpad_touch_shortcut4_key)
+	var dpadTouchShortcut4
+		get() = sharedPreferences.getInt(dpadTouchShortcut4Key, DPAD_TOUCH_SHORTCUT4_DEFAULT)
+		set(value) { sharedPreferences.edit().putInt(dpadTouchShortcut4Key, value).apply() }
 
 	val resolutionKey get() = resources.getString(R.string.preferences_resolution_key)
 	var resolution

@@ -28,6 +28,7 @@ class StreamViewModel(val application: Application, val connectInfo: ConnectInfo
 	override fun onCleared()
 	{
 		super.onCleared()
+		input.release()
 		// Safety net: ensure session is shut down when ViewModel is destroyed
 		session.shutdown()
 	}

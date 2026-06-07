@@ -32,22 +32,30 @@ class TouchTracker
 
 			MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP ->
 			{
-				if(event.getPointerId(event.actionIndex) == pointerId)
+				if(pointerId != null && event.getPointerId(event.actionIndex) == pointerId)
 				{
 					pointerId = null
 					currentPosition = null
 				}
 			}
 
+			MotionEvent.ACTION_CANCEL ->
+			{
+				pointerId = null
+				currentPosition = null
+			}
+
 			MotionEvent.ACTION_MOVE ->
 			{
-				val pointerId = pointerId
-				if(pointerId != null)
+				val activeId = pointerId ?: return
+				val pointerIndex = event.findPointerIndex(activeId)
+				if(pointerIndex < 0)
 				{
-					val pointerIndex = event.findPointerIndex(pointerId)
-					if(pointerIndex >= 0)
-						currentPosition = Vector(event.getX(pointerIndex), event.getY(pointerIndex))
+					pointerId = null
+					currentPosition = null
+					return
 				}
+				currentPosition = Vector(event.getX(pointerIndex), event.getY(pointerIndex))
 			}
 		}
 	}

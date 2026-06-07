@@ -35,6 +35,8 @@ class ButtonView @JvmOverloads constructor(
 
 	var buttonPressedCallback: ((Boolean) -> Unit)? = null
 
+	private var activePointerId = -1
+
 	private val drawableIdle: Drawable?
 	private val drawablePressed: Drawable?
 
@@ -74,16 +76,41 @@ class ButtonView @JvmOverloads constructor(
 		}?.firstOrNull() ?: this
 	}
 
+	private fun isInside(x: Float, y: Float) =
+		x >= paddingLeft && x < width - paddingRight && y >= paddingTop && y < height - paddingBottom
+
 	override fun onTouchEvent(event: MotionEvent): Boolean
 	{
 		when(event.actionMasked)
 		{
 			MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
-				if(bestFittingTouchView(event.getX(event.actionIndex), event.getY(event.actionIndex)) != this)
+				val index = event.actionIndex
+				if(bestFittingTouchView(event.getX(index), event.getY(index)) != this)
 					return false
+				activePointerId = event.getPointerId(index)
 				buttonPressed = true
 			}
+		MotionEvent.ACTION_MOVE -> {
+			if(activePointerId >= 0)
+			{
+				val index = event.findPointerIndex(activePointerId)
+				if(index < 0 || !isInside(event.getX(index), event.getY(index)))
+				{
+					activePointerId = -1
+					buttonPressed = false
+				}
+			}
+		}
 			MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+				val index = event.actionIndex
+				if(activePointerId >= 0 && event.getPointerId(index) == activePointerId)
+				{
+					activePointerId = -1
+					buttonPressed = false
+				}
+			}
+			MotionEvent.ACTION_CANCEL -> {
+				activePointerId = -1
 				buttonPressed = false
 			}
 		}

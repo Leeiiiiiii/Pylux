@@ -85,6 +85,7 @@
     <string name="preferences_category_title_general">General</string>
     <string name="preferences_category_title_stream">Remote Play Settings</string>
     <string name="preferences_category_title_export">Export</string>
+    <string name="preferences_category_title_touchpad_emulation">Touchpad Emulation</string>
     <string name="preferences_registered_hosts_title">Registered Consoles</string>
     <string name="preferences_logs_title">Session Logs</string>
     <string name="preferences_logs_summary">Collected log files from previous sessions for debugging</string>
@@ -115,6 +116,16 @@
     <string name="preferences_pip_enabled_summary">Enable PiP mode when minimizing during streaming (Android 8.0+)</string>
     <string name="preferences_swap_cross_moon_title">Swap Cross/Moon and Box/Pyramid Buttons</string>
     <string name="preferences_swap_cross_moon_summary">Swap face buttons if default mapping is incorrect (e.g. for 8BitDo controllers)</string>
+    <string name="preferences_map_select_to_touchpad_title">Map Select to Touchpad</string>
+    <string name="preferences_map_select_to_touchpad_summary">Map the Select button to touchpad click</string>
+    <string name="preferences_dpad_touch_enabled_title">D-pad Touchpad Emulation</string>
+    <string name="preferences_dpad_touch_enabled_summary">Use the D-pad to move the pointer on the touchpad</string>
+    <string name="preferences_dpad_touch_increment_title">D-pad Touch Increment</string>
+    <string name="preferences_dpad_touch_increment_summary">%1$d (%2$s mm per step)</string>
+    <string name="preferences_dpad_touch_shortcut1_title">Touch Combo Button 1</string>
+    <string name="preferences_dpad_touch_shortcut2_title">Touch Combo Button 2</string>
+    <string name="preferences_dpad_touch_shortcut3_title">Touch Combo Button 3</string>
+    <string name="preferences_dpad_touch_shortcut4_title">Touch Combo Button 4</string>
     <string name="preferences_rumble_enabled_title">Rumble</string>
     <string name="preferences_rumble_enabled_summary">Use phone vibration motor for rumble</string>
     <string name="preferences_motion_enabled_title">Motion</string>
@@ -179,6 +190,46 @@
     <string name="psn_login_not_complete_toast">Please complete the login in your browser first</string>
     <string name="psn_login_server_error">Failed to connect to login server</string>
     
+    <!-- D-pad touch combo buttons (indices match Qt SettingsDialog model) -->
+    <string-array name="dpad_touch_button_entries">
+        <item>Not Used</item>
+        <item>Cross</item>
+        <item>Moon</item>
+        <item>Box</item>
+        <item>Pyramid</item>
+        <item>Dpad Left</item>
+        <item>Dpad Right</item>
+        <item>Dpad Up</item>
+        <item>Dpad Down</item>
+        <item>L1</item>
+        <item>R1</item>
+        <item>L3</item>
+        <item>R3</item>
+        <item>Options</item>
+        <item>Share</item>
+        <item>Touchpad</item>
+        <item>PS</item>
+    </string-array>
+    <string-array name="dpad_touch_button_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+        <item>9</item>
+        <item>10</item>
+        <item>11</item>
+        <item>12</item>
+        <item>13</item>
+        <item>14</item>
+        <item>15</item>
+        <item>16</item>
+    </string-array>
+
     <!-- Datacenter options -->
     <string-array name="cloud_datacenter_entries">
         <item>Auto (Best Ping)</item>
@@ -222,6 +273,13 @@
     <string name="preferences_import_settings_key">import_settings</string>
     <string name="preferences_export_settings_key">export_settings</string>
     <string name="preferences_swap_cross_moon_key">swap_cross_moon</string>
+    <string name="preferences_map_select_to_touchpad_key">map_select_to_touchpad</string>
+    <string name="preferences_dpad_touch_enabled_key">dpad_touch_enabled</string>
+    <string name="preferences_dpad_touch_increment_key">dpad_touch_increment</string>
+    <string name="preferences_dpad_touch_shortcut1_key">dpad_touch_shortcut1</string>
+    <string name="preferences_dpad_touch_shortcut2_key">dpad_touch_shortcut2</string>
+    <string name="preferences_dpad_touch_shortcut3_key">dpad_touch_shortcut3</string>
+    <string name="preferences_dpad_touch_shortcut4_key">dpad_touch_shortcut4</string>
     <string name="preferences_resolution_key">stream_resolution</string>
     <string name="preferences_fps_key">stream_fps</string>
     <string name="preferences_bitrate_key">stream_bitrate</string>
