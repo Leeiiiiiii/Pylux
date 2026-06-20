@@ -239,6 +239,7 @@ typedef struct android_chiaki_session_t
 	AndroidChiakiOpusDecoder opus_decoder;
 	bool use_opus_decoder; // true for PSCloud, false for PSNow/Remote Play
 	void *audio_output;
+
 } AndroidChiakiSession;
 
 static void android_chiaki_event_cb(ChiakiEvent *event, void *user)
@@ -754,6 +755,44 @@ JNIEXPORT void JNICALL JNI_FCN(sessionSetLoginPin)(JNIEnv *env, jobject obj, jlo
 	const char *pin = E->GetStringUTFChars(env, pin_java, NULL);
 	chiaki_session_set_login_pin(&session->session, (const uint8_t *)pin, strlen(pin));
 	E->ReleaseStringUTFChars(env, pin_java, pin);
+}
+
+JNIEXPORT jobject JNICALL JNI_FCN(sessionGetMetrics)(JNIEnv *env, jobject obj, jlong ptr)
+{
+	AndroidChiakiSession *android_session = (AndroidChiakiSession *)ptr;
+	if(!android_session)
+		return NULL;
+
+	ChiakiSession *session = &android_session->session;
+
+	double fps = android_chiaki_video_decoder_get_fps(&android_session->video_decoder);
+
+	int width = session->connect_info.video_profile.width;
+	int height = session->connect_info.video_profile.height;
+
+	double bitrate = session->stream_connection.measured_bitrate;
+
+	double ping_ms = session->rtt_us / 1000.0;
+
+	double latency_ms = session->stream_connection.server_rtt;
+
+	double packet_loss = session->stream_connection.congestion_control.packet_loss;
+
+	double decode_time_ms = android_chiaki_video_decoder_get_avg_decode_time_ms(&android_session->video_decoder);
+
+	jlong drops = (jlong)android_chiaki_video_decoder_get_cumulative_drops(&android_session->video_decoder);
+
+	jclass metrics_class = E->FindClass(env, BASE_PACKAGE"/SessionMetrics");
+	jmethodID ctor = E->GetMethodID(env, metrics_class, "<init>", "(IIFDDDDDJ)V");
+	return E->NewObject(env, metrics_class, ctor,
+		(jint)width, (jint)height,
+		(jfloat)fps,
+		(jdouble)bitrate,
+		(jdouble)ping_ms,
+		(jdouble)latency_ms,
+		(jdouble)packet_loss,
+		(jdouble)decode_time_ms,
+		(jlong)drops);
 }
 
 typedef struct android_discovery_service_t

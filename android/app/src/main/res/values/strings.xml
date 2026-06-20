@@ -234,6 +234,9 @@
     <string name="preferences_cloud_resolution_pscloud_key">cloud_resolution_pscloud</string>
     <string name="preferences_cloud_bitrate_psnow_key">cloud_bitrate_psnow</string>
     <string name="preferences_cloud_bitrate_pscloud_key">cloud_bitrate_pscloud</string>
+    <string name="preferences_show_performance_overlay_key">show_performance_overlay</string>
+    <string name="preferences_show_performance_overlay_title">Performance overlay</string>
+    <string name="preferences_show_performance_overlay_summary">Show bitrate, latency, and packet loss during streaming</string>
     <string name="preferences_pip_enabled_key">pip_enabled</string>
 
     <string name="donation_dialog_title">Support Pylux</string>

@@ -1,7 +1,7 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # Fix for 16 KB page size compatibility (required for Android devices with 16 KB pages)
 # With NDK r28+ and ANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON set in build.gradle,

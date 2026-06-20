@@ -74,6 +74,12 @@
             app:summary="@string/preferences_pip_enabled_summary"
             app:defaultValue="true"
             app:icon="@drawable/ic_resolution"/>
+
+        <SwitchPreference
+            app:key="@string/preferences_show_performance_overlay_key"
+            app:title="@string/preferences_show_performance_overlay_title"
+            app:summary="@string/preferences_show_performance_overlay_summary"
+            app:icon="@drawable/ic_resolution"/>
     </PreferenceCategory>
 
     <PreferenceCategory
