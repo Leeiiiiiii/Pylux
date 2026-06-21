@@ -1,9 +1,9 @@
 
 ![Pylux Logo](pylux-logo.png)
 
-# Pylux — Community Fork
+# Pylux — Community Fork (Android only)
 
-> This fork extends the upstream [Pylux](https://github.com/ForWard-Technologies-LLC/Pylux) with Android-specific enhancements focused on cloud streaming quality-of-life, performance diagnostics, and build stability.
+> This is an **Android-only fork** of [Pylux](https://github.com/ForWard-Technologies-LLC/Pylux). It adds cloud streaming quality-of-life features, performance diagnostics, and build fixes. Non-Android platforms are untouched.
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://github.com/ForWard-Technologies-LLC/Pylux/blob/master/LICENSES/AGPL-3.0-only-OpenSSL.txt)
 [![Platforms](https://img.shields.io/badge/platforms-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-brightgreen)](https://github.com/ForWard-Technologies-LLC/Pylux/releases)
