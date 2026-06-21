@@ -199,32 +199,18 @@
     
     <!-- Cloud language options -->
     <string-array name="cloud_language_entries">
-        <item>English (US)</item>
-        <item>English (UK)</item>
+        <item>English</item>
         <item>Deutsch</item>
         <item>Français</item>
-        <item>Italiano</item>
-        <item>Español</item>
-        <item>Português (Brasil)</item>
-        <item>Nederlands</item>
         <item>Suomi</item>
-        <item>日本語</item>
-        <item>한국어</item>
+        <item>English (UK)</item>
     </string-array>
     <string-array name="cloud_language_values">
         <item>en-US</item>
-        <item>en-GB</item>
         <item>de-DE</item>
         <item>fr-FR</item>
-        <item>it-IT</item>
-        <item>es-ES</item>
-        <item>pt-BR</item>
-        <item>nl-NL</item>
         <item>fi-FI</item>
-        <item>ja-JP</item>
-        <item>ko-KR</item>
-        <item>zh-Hans</item>
-        <item>zh-Hant</item>
+        <item>en-GB</item>
     </string-array>
 
     <!-- Resolution options for Game Library (PSCloud) - up to 4K -->

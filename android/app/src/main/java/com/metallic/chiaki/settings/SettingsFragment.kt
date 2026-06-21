@@ -500,10 +500,8 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 					datacenterNames.any { it.startsWith(prefix, ignoreCase = true) }
 				} ?: false // hide if no datacenter mapping exists
 			}
-			// Always keep en-US as fallback
 			val filteredLocales = filtered.map { it.first }.toSet()
-			val keepLocales = if ("en-US" in filteredLocales) filteredLocales else filteredLocales + "en-US"
-			val final = xmlValues.zip(xmlEntries).filter { (locale, _) -> locale in keepLocales }
+			val final = xmlValues.zip(xmlEntries).filter { (locale, _) -> locale in filteredLocales }
 
 			languagePref.entryValues = final.map { it.first }.toTypedArray()
 			languagePref.entries = final.map { it.second }.toTypedArray()

@@ -8,8 +8,7 @@ object CloudLocale
 
 	/** Locale codes supported for cloud streaming language selection. */
 	val SUPPORTED_LOCALES = listOf(
-		"en-US", "en-GB", "de-DE", "fr-FR", "it-IT", "es-ES",
-		"pt-BR", "nl-NL", "fi-FI", "ja-JP", "ko-KR"
+		"en-US", "en-GB", "de-DE", "fr-FR", "fi-FI"
 	)
 
 	fun toImagicLocale(stored: String): String = stored.lowercase()
@@ -38,17 +37,8 @@ object CloudLocale
 	private val DATACENTER_LOCALE_MAP: Map<String, List<String>> = mapOf(
 		"fra" to listOf("de-DE"),           // Frankfurt, Germany
 		"lon" to listOf("en-GB"),           // London, UK
-		"sto" to listOf("en-GB", "fi-FI"),  // Stockholm, Nordic
-		"mil" to listOf("it-IT"),           // Milan, Italy
+		"sto" to listOf("en-US", "fi-FI"),  // Stockholm, Nordic (English + Finnish)
 		"par" to listOf("fr-FR"),           // Paris, France
-		"ams" to listOf("nl-NL"),           // Amsterdam, Netherlands
-		"mad" to listOf("es-ES"),           // Madrid, Spain
-		"sao" to listOf("pt-BR"),           // Sao Paulo, Brazil
-		"tyo" to listOf("ja-JP"),           // Tokyo, Japan
-		"osa" to listOf("ja-JP"),           // Osaka, Japan
-		"sel" to listOf("ko-KR"),           // Seoul, Korea
-		"sjc" to listOf("en-US"),           // San Jose, US West
-		"iad" to listOf("en-US"),           // Washington DC, US East
 	)
 
 	/** Get the datacenter prefix for a given locale (e.g. "de-DE" → "fra"). */
