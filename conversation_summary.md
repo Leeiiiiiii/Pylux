@@ -154,3 +154,35 @@ Original commit `be04d2fa` included unrelated changes (dpad touch, fast scroller
 - CMake in SDK: 3.22.1
 - AGP: 8.5.2, Kotlin: 1.9.24
 - compileSdk: 35, targetSdk: 35, minSdk: 24
+
+---
+
+## Sonar detection & safety assessment (2026-06-22)
+
+### What Sony sees
+- Device: PlayStation Portal (`"model":"portal"`, `"platform":"qlite"`, `"gaikaiPlayer":"16.4.0"`, `User-Agent: PlayStation Portal/6.0.0...`)
+- DUID: `0000000700410080` + 32 random hex (regenerated per launch, not persisted)
+- Auth: NPSSO token → OAuth → `gkCloudAuthCode` + `streamServerAuthCode`
+- No `Accept-Language: jp` in cloud streaming path (only in chiaki holepunch.c for device discovery)
+- Cloud streaming headers: `User-Agent`, `X-Gaikai-Session`, `Content-Type: application/json`
+
+### What triggers fraud detection (likely)
+- **Rapid region-hopping**: 20+ datacenter switches in minutes — impossible travel
+- **Concurrent sessions**: same account streaming from two datacenters at once — account sharing
+- **Region mismatch persistence**: Finnish account always requesting German language — suspicious but not definitive
+- **Mechanical patterns**: back-to-back max-duration sessions — looks like a server farm
+
+### What doesn't (likely)
+- Same IP, same account, human-paced test sessions
+- European datacenters only — same continent
+- Account language matches datacenter (Finnish account → Stockholm)
+- Pylux has existed for years with zero reported bans for client impersonation
+
+### Sony escalation ladder (if detected)
+1. Silent throttle — higher latency, lower bitrate
+2. Captcha/re-login — forced verification
+3. Temp session ban — blocked for hours/days
+4. Account suspension — loss of purchases, trophies (rare, usually only for payment fraud)
+
+### Safest practice
+Pick one language + one datacenter, never change them. English + stoa for Finnish account. Consistency is the best camouflage.
