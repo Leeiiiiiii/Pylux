@@ -63,6 +63,45 @@ Same as above plus:
 - **PR #21**: https://github.com/ForWard-Technologies-LLC/Pylux/pull/21
 - Title: "Android: cloud language picker + datacenter auto-match + overlay server display + build fixes"
 
+---
+
+## Complete file-by-file change log for Pylux/android (2026-06-22)
+
+### Language picker + datacenter auto-match
+
+| File | Change |
+|------|--------|
+| `values/strings.xml` | `preferences_cloud_language_key` (`cloud_language_pscloud`), title/summary; 5-entry arrays (English→en-US, Deutsch→de-DE, Français→fr-FR, Suomi→fi-FI, English UK→en-GB) |
+| `xml/preferences.xml` | `ListPreference` for cloud language under General, after PSN login |
+| `common/Preferences.kt:271` | `cloudLanguageKey` property; `setCloudLanguage()` invalidates CloudGameRepository cache |
+| `settings/SettingsFragment.kt` | DataStore `getString`/`putString` wired for `cloudLanguageKey`; `bindCloudLanguageToDatacenter()` filters by available DCs + auto-selects |
+| `cloudplay/CloudLocale.kt` | `SUPPORTED_LOCALES` (5), `DATACENTER_LOCALE_MAP` (4 prefixes: fra/lon/sto/par), `localeToDatacenterPrefix()`, `datacenterToLocales()`, `filterLocalesByDatacenters()` |
+| `cloudplay/api/PSGaikaiStreaming.kt:1385` | Language format: `"de-DE"` → `"de"` (bare code); `AllocationResult` gets `datacenterName` field |
+| `cloudplay/model/CloudStreamSession.kt` | Added `datacenterName` field |
+| `cloudplay/api/CloudStreamingBackend.kt:244` | Passes `allocationResult.datacenterName` to `CloudStreamSession` |
+| `main/CloudPlayFragment.kt:1597` | Passes `session.datacenterName` to `ConnectInfo.serverName` |
+
+### Build fixes
+
+| File | Change |
+|------|--------|
+| `gradle.properties:13` | Java home path: `Android Studio2` → `Android Studio` |
+| `cpp/chiaki-jni.c:777` | `server_rtt` → `0.0` (field doesn't exist in lib) |
+| `stream/StreamViewModel.kt:118` | Removed `input.release()` (method doesn't exist) |
+
+### Drops counter fix
+
+| File | Change |
+|------|--------|
+| `cpp/video-decoder.c:167` | Removed `(void)frames_lost`; now `cumulative_drops += frames_lost` (was only counting codec buffer overflow) |
+
+### Final state
+- 5 languages match 4 datacenter prefixes
+- English → stoa, English UK → lonb, Deutsch → fraa/frab, Français → parb, Suomi → stoa
+- All filtered dynamically based on saved ping results
+- Overlay shows actual server name
+- Gaikai receives bare language code
+
 ## CMake version mismatch
 - `android/app/build.gradle` line 124: changed `version "3.30.4"` → `version "3.22.1"`
 - CMake 3.30.4 was not installed in SDK. AGP 8.5.2 ships CMake 3.22.1.
