@@ -53,6 +53,11 @@ jobs:
           mkdir -p release
           cp android/app/build/outputs/apk/debug/app-debug.apk release/pylux-android.apk
 
+      - name: Get commit message
+        run: |
+          COMMIT_MSG=$(git log -1 --format=%s)
+          echo "COMMIT_MSG=$COMMIT_MSG" >> $GITHUB_ENV
+
       - name: Create tag
         run: |
           TAG=auto-build-${GITHUB_RUN_NUMBER}
@@ -66,18 +71,10 @@ jobs:
           tag_name: ${{ env.TAG }}
           name: Pylux Android ${{ env.TAG }}
           body: |
-            ## Pylux Android Auto Build
+            **${{ env.COMMIT_MSG }}**
 
-            ### Fixes
-            - Bloodborne now works — fixed PSNOW product ID conversion and streaming SKU selection
-            - Fixed cloud store country mapping (FI→GB etc.) for unsupported PSNOW store regions
-            - Session locale no longer overwrites user language preference
-            - FEC recovery: corrupt frames no longer cascade into multi-second freezes
-            - Ref-frame isolation: dropped frames don't poison future P-frame chain
-            - Crypto key buffer increased to prevent exhaustion under load
-            - Frame processor off-by-one fix
+            Built from commit [`${{ github.sha }}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}).
 
-            ### APK
-            Attached release asset: `pylux-android.apk`
+            Attached asset: `pylux-android.apk`
 
           files: release/pylux-android.apk
