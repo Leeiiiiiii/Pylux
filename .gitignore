@@ -87,3 +87,5 @@ macos/fastlane/report.xml
 # Local Flatpak testing (throwaway, never commit)
 scripts/flatpak/test-flatpak-local.sh
 pylux-test.flatpak
+
+conversation_summary.md
