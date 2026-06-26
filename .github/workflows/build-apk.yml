@@ -56,14 +56,16 @@ jobs:
       - name: Get commit message
         run: |
           COMMIT_MSG=$(git log -1 --format=%s)
+          SHORT_SHA=$(git rev-parse --short HEAD)
           echo "COMMIT_MSG=$COMMIT_MSG" >> $GITHUB_ENV
+          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
 
       - name: Create tag
         run: |
-          TAG=auto-build-${GITHUB_RUN_NUMBER}
+          TAG=build-${SHORT_SHA}
           echo "TAG=$TAG" >> $GITHUB_ENV
-          git tag $TAG
-          git push origin $TAG
+          git tag -f $TAG
+          git push -f origin $TAG
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
