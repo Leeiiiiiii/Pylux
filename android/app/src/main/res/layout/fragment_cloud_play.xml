@@ -15,7 +15,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Secondary header bar matching iOS cloudSubTabs -->
+            <!-- Secondary header: PS5-style pill tabs -->
             <LinearLayout
                 android:id="@+id/cloudSubHeader"
                 android:layout_width="match_parent"
@@ -23,127 +23,122 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@color/toolbar_bg"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="6dp">
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="4dp">
 
-                <!-- Left side: Section tabs + All/Owned toggle -->
                 <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:background="@drawable/mode_switcher_bg"
+                    android:paddingHorizontal="2dp"
+                    android:paddingVertical="2dp">
 
-                    <!-- Catalog tab -->
                     <TextView
                         android:id="@+id/catalogTabButton"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="30dp"
                         android:text="Catalog"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
                         android:textColor="#FFFFFF"
                         android:gravity="center"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="0dp"
+                        android:paddingHorizontal="16dp"
                         android:focusable="true"
-
                         android:clickable="true"
                         android:background="@android:color/transparent" />
 
-                    <!-- Library tab -->
                     <TextView
                         android:id="@+id/libraryTabButton"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="30dp"
                         android:text="Library"
-                        android:textSize="13sp"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
                         android:textColor="#FFFFFF"
                         android:gravity="center"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="0dp"
+                        android:paddingHorizontal="16dp"
                         android:layout_marginStart="2dp"
                         android:focusable="true"
-
-                        android:clickable="true"
-                        android:background="@android:color/transparent" />
-
-                    <!-- All/Owned toggle (Library only) -->
-                    <TextView
-                        android:id="@+id/ownedToggleButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="26dp"
-                        android:text="All"
-                        android:textSize="11sp"
-                        android:textColor="#FFFFFF"
-                        android:gravity="center"
-                        android:paddingHorizontal="8dp"
-                        android:paddingVertical="0dp"
-                        android:layout_marginStart="4dp"
-                        android:visibility="gone"
-                        android:focusable="true"
-
                         android:clickable="true"
                         android:background="@android:color/transparent" />
 
                 </LinearLayout>
 
-                <!-- Right side: Icon buttons -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/ownedToggleButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="26dp"
+                    android:text="All"
+                    android:textSize="11sp"
+                    android:textColor="#99FFFFFF"
+                    android:gravity="center"
+                    android:paddingHorizontal="10dp"
+                    android:layout_marginStart="8dp"
+                    android:visibility="gone"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="@drawable/mode_switcher_bg" />
+
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:layout_marginStart="4dp">
 
-                    <!-- Favorites filter -->
                     <ImageButton
                         android:id="@+id/headerFavoritesButton"
                         android:layout_width="32dp"
                         android:layout_height="32dp"
                         android:src="@drawable/ic_star_outline"
-                        android:background="@drawable/secondary_header_button_bg"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Favorites"
                         android:scaleType="centerInside"
                         android:focusable="true"
+                        android:padding="4dp"
+                        android:tint="#99FFFFFF" />
 
-                        android:padding="4dp" />
-
-                    <!-- Sort menu -->
                     <ImageButton
                         android:id="@+id/headerSortButton"
                         android:layout_width="32dp"
                         android:layout_height="32dp"
                         android:src="@drawable/ic_sort"
-                        android:background="@drawable/secondary_header_button_bg"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Sort"
                         android:scaleType="centerInside"
                         android:focusable="true"
+                        android:padding="4dp"
+                        android:tint="#99FFFFFF" />
 
-                        android:padding="4dp" />
-
-                    <!-- Search toggle -->
                     <ImageButton
                         android:id="@+id/headerSearchButton"
                         android:layout_width="32dp"
                         android:layout_height="32dp"
                         android:src="@android:drawable/ic_menu_search"
-                        android:background="@drawable/secondary_header_button_bg"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Search"
                         android:scaleType="centerInside"
                         android:focusable="true"
+                        android:padding="4dp"
+                        android:tint="#99FFFFFF" />
 
-                        android:padding="4dp" />
-
-                    <!-- Refresh -->
                     <ImageButton
                         android:id="@+id/headerRefreshButton"
                         android:layout_width="32dp"
                         android:layout_height="32dp"
                         android:src="@drawable/ic_refresh"
-                        android:background="@drawable/secondary_header_button_bg"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Refresh"
                         android:scaleType="centerInside"
                         android:focusable="true"
-
-                        android:padding="4dp" />
+                        android:padding="4dp"
+                        android:tint="#99FFFFFF" />
 
                 </LinearLayout>
 
@@ -181,7 +176,7 @@
                 android:layout_height="match_parent"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
-                android:paddingTop="36dp"
+                android:paddingTop="8dp"
                 android:paddingBottom="8dp"
                 android:clipToPadding="false"
                 android:descendantFocusability="afterDescendants"

@@ -98,20 +98,18 @@ class CloudGameAdapter(
 		{
 			binding.gameNameTextView.text = game.name
 			binding.gamePlatformTextView.text = when (game.platform.lowercase()) {
-				"ps3" -> "3"
-				"ps4" -> "4"
-				"ps5" -> "5"
-				else -> game.platform.takeLast(1)
+				"ps3" -> "PS3"
+				"ps4" -> "PS4"
+				"ps5" -> "PS5"
+				else -> game.platform
 			}
 
 			if (showOwnershipBadge && game.serviceType == "pscloud") {
 				binding.ownershipBadge.visibility = android.view.View.VISIBLE
 				if (game.isOwned) {
-					binding.ownershipBadge.text = "Owned"
-					binding.ownershipBadge.setBackgroundColor(0xCC4CAF50.toInt())
+					binding.ownershipBadge.text = "In Library"
 				} else {
 					binding.ownershipBadge.text = "Not Owned"
-					binding.ownershipBadge.setBackgroundColor(0xCCFF9800.toInt())
 				}
 			} else {
 				binding.ownershipBadge.visibility = android.view.View.GONE

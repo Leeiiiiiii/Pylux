@@ -5,11 +5,16 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="4dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@color/card_background"
+    app:strokeColor="#22FFFFFF"
+    app:strokeWidth="0.5dp"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="?android:attr/selectableItemBackground">
+    android:foreground="?android:attr/selectableItemBackground"
+    android:stateListAnimator="@animator/card_scale_animator"
+    android:outlineProvider="bounds">
 
     <com.metallic.chiaki.common.SquareFrameLayout
         android:layout_width="match_parent"
@@ -19,93 +24,89 @@
             android:id="@+id/gameImageView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:scaleType="fitCenter"
+            android:scaleType="centerCrop"
             android:contentDescription="Game cover image" />
 
         <ProgressBar
             android:id="@+id/loadingSpinner"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_gravity="center"
             android:visibility="gone" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/card_gradient_overlay" />
+
         <ImageButton
             android:id="@+id/favoriteButton"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
             android:layout_gravity="top|start"
-            android:layout_margin="6dp"
-            android:padding="4dp"
+            android:layout_margin="8dp"
+            android:padding="2dp"
             android:src="@drawable/ic_star_outline"
-            android:background="@android:color/transparent"
+            android:background="@drawable/favorite_button_bg"
             android:contentDescription="Favorite"
             android:clickable="false"
             android:focusable="false"
-            android:scaleType="fitCenter" />
+            android:scaleType="centerInside" />
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/ownershipBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|end"
-            android:layout_margin="6dp"
-            android:paddingStart="6dp"
-            android:paddingEnd="6dp"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:text="Owned"
-            android:textSize="9sp"
+            android:layout_margin="8dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:text="In Library"
+            android:textSize="10sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
-            android:background="#CC4CAF50"
+            android:background="@drawable/ownership_badge_bg"
             android:visibility="gone" />
 
-        <LinearLayout
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/gamePlatformTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:text="PS4"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:background="@drawable/ps5_platform_badge_bg"
+            android:elevation="2dp" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/gameNameTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@drawable/gradient_overlay"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/gameNameTextView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Game Name"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:shadowColor="#000000"
-                android:shadowDx="0"
-                android:shadowDy="2"
-                android:shadowRadius="4" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/gamePlatformTextView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp"
-                android:paddingTop="3dp"
-                android:paddingBottom="3dp"
-                android:text="5"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:background="@drawable/platform_badge_background" />
-
-        </LinearLayout>
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="44dp"
+            android:text="Game Name"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:shadowColor="#000000"
+            android:shadowRadius="4"
+            android:elevation="2dp" />
 
     </com.metallic.chiaki.common.SquareFrameLayout>
 
 </com.google.android.material.card.MaterialCardView>
-

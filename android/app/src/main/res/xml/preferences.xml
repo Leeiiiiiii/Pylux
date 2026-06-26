@@ -4,17 +4,6 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory
-        app:key="category_support"
-        app:title="@string/preferences_category_title_support">
-        <Preference
-            app:key="donate_support"
-            app:title="@string/preferences_donate_title"
-            tools:summary="@string/preferences_donate_summary"
-            app:summary="@string/preferences_donate_summary"
-            app:icon="@drawable/ic_star" />
-    </PreferenceCategory>
-
-    <PreferenceCategory
         app:key="category_general"
         app:title="@string/preferences_category_title_general">
         <Preference

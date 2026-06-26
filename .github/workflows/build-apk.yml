@@ -40,6 +40,10 @@ jobs:
           sudo apt-get install -y protobuf-compiler
           python3 -m pip install grpcio-tools
 
+      - name: Strip Windows-only Gradle property for CI
+        working-directory: android
+        run: sed -i '/^org\.gradle\.java\.home=/d' gradle.properties
+
       - name: Build APK
         working-directory: android
         run: ./gradlew assembleDebug

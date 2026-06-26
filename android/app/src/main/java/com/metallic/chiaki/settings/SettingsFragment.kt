@@ -18,7 +18,6 @@ import com.pylux.stream.R
 import com.metallic.chiaki.cloudplay.CloudLocale
 import com.metallic.chiaki.cloudplay.PsnLoginActivity
 import com.metallic.chiaki.cloudplay.repository.CloudGameRepository
-import com.metallic.chiaki.common.DonationPromptCoordinator
 import com.metallic.chiaki.common.LicenseAgreementActivity
 import com.metallic.chiaki.common.Preferences
 import com.metallic.chiaki.common.PsnTokenManager
@@ -126,45 +125,6 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 
 	private var disposable = CompositeDisposable()
 	private var exportDisposable = CompositeDisposable().also { it.addTo(disposable) }
-	private var settingsDonationCoordinator: DonationPromptCoordinator? = null
-
-	private fun releaseSettingsDonationCoordinator()
-	{
-		settingsDonationCoordinator?.onDestroy()
-		settingsDonationCoordinator = null
-	}
-
-	private fun refreshDonatePreference(preferenceScreen: PreferenceScreen)
-	{
-		val act = activity as? AppCompatActivity ?: return
-		val category = preferenceScreen.findPreference<PreferenceCategory>("category_support") ?: return
-		val donatePref = preferenceScreen.findPreference<Preference>("donate_support") ?: return
-		if (DonationPromptCoordinator.donationProductIds(act).isEmpty())
-		{
-			category.isVisible = false
-			return
-		}
-		category.isVisible = true
-		donatePref.summary = getString(R.string.preferences_donate_summary)
-	}
-
-	private fun bindDonatePreference(preferenceScreen: PreferenceScreen, preferences: Preferences)
-	{
-		refreshDonatePreference(preferenceScreen)
-		preferenceScreen.findPreference<Preference>("donate_support")?.setOnPreferenceClickListener {
-			val act = activity as? AppCompatActivity ?: return@setOnPreferenceClickListener true
-			// Reset any stuck coordinator (e.g. billing never completed) so every click can retry.
-			releaseSettingsDonationCoordinator()
-			val coord = DonationPromptCoordinator.forSettings(act, preferences) { releaseSettingsDonationCoordinator() }
-			settingsDonationCoordinator = coord
-			if (!coord.openSupportFromSettings())
-			{
-				releaseSettingsDonationCoordinator()
-				Toast.makeText(requireContext(), R.string.preferences_donate_no_products, Toast.LENGTH_LONG).show()
-			}
-			true
-		}
-	}
 
 	override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?)
 	{
@@ -176,8 +136,6 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 		val preferences = viewModel.preferences
 		preferenceManager.preferenceDataStore = DataStore(preferences)
 		setPreferencesFromResource(R.xml.preferences, rootKey)
-
-		bindDonatePreference(preferenceScreen, preferences)
 
 		preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_resolution_key))?.let {
 			it.entryValues = Preferences.resolutionAll.map { res -> res.value }.toTypedArray()
@@ -265,13 +223,6 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
 	override fun onResume()
 	{
 		super.onResume()
-		preferenceScreen?.let { refreshDonatePreference(it) }
-	}
-
-	override fun onDestroyView()
-	{
-		releaseSettingsDonationCoordinator()
-		super.onDestroyView()
 	}
 
 	override fun onDestroy()

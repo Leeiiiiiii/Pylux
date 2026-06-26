@@ -13,7 +13,8 @@
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         android:background="@color/toolbar_bg"
-        android:elevation="0dp">
+        android:elevation="0dp"
+        app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
@@ -32,63 +33,6 @@
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp">
 
-                <!-- Left Island: Mode Switcher -->
-                <LinearLayout
-                    android:id="@+id/modeIsland"
-                    android:layout_width="wrap_content"
-                    android:layout_height="46dp"
-                    android:layout_alignParentStart="true"
-                    android:layout_centerVertical="true"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/icon_island_background"
-                    android:paddingStart="3dp"
-                    android:paddingEnd="3dp">
-
-                    <!-- FrameLayout wraps icon so we can show a circular highlight behind it -->
-                    <FrameLayout
-                        android:id="@+id/remotePlayButton"
-                        android:layout_width="44dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="0dp"
-                        android:focusable="true"
-                        android:clickable="true"
-                        android:background="?android:attr/selectableItemBackgroundBorderless">
-                        <ImageView
-                            android:id="@+id/remotePlayIcon"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:padding="8dp"
-                            android:src="@drawable/ic_gamepad_modern"
-                            android:contentDescription="Remote Play"
-                            android:background="@drawable/icon_island_selected"
-                            android:focusable="false"
-                            android:clickable="false" />
-                    </FrameLayout>
-
-                    <FrameLayout
-                        android:id="@+id/cloudPlayButton"
-                        android:layout_width="44dp"
-                        android:layout_height="40dp"
-                        android:layout_margin="0dp"
-                        android:focusable="true"
-                        android:clickable="true"
-                        android:background="?android:attr/selectableItemBackgroundBorderless">
-                        <ImageView
-                            android:id="@+id/cloudPlayIcon"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:padding="8dp"
-                            android:src="@drawable/ic_cloud"
-                            android:contentDescription="Cloud Play"
-                            android:background="@android:color/transparent"
-                            android:focusable="false"
-                            android:clickable="false" />
-                    </FrameLayout>
-
-                </LinearLayout>
-
-                <!-- Center: Pylux logo - absolutely centered -->
                 <ImageView
                     android:id="@+id/appTitle"
                     android:layout_width="wrap_content"
@@ -98,23 +42,18 @@
                     android:adjustViewBounds="true"
                     android:contentDescription="@string/app_name" />
 
-                <!-- Right Island: Action Icons -->
                 <LinearLayout
                     android:id="@+id/actionIsland"
                     android:layout_width="wrap_content"
-                    android:layout_height="46dp"
+                    android:layout_height="40dp"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:background="@drawable/icon_island_background"
-                    android:paddingStart="3dp"
-                    android:paddingEnd="3dp">
+                    android:gravity="center_vertical">
 
-                    <!-- WiFi Discovery Icon (Remote Play) -->
                     <ImageView
                         android:id="@+id/wifiIcon"
-                        android:layout_width="44dp"
+                        android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:padding="8dp"
                         android:src="@drawable/ic_discover_off"
@@ -122,12 +61,11 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:focusable="true"
                         android:clickable="true"
-                        android:tint="#CCFFFFFF" />
+                        android:tint="#99FFFFFF" />
 
-                    <!-- Settings Icon -->
                     <ImageView
                         android:id="@+id/settingsIcon"
-                        android:layout_width="44dp"
+                        android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:padding="8dp"
                         android:src="@drawable/ic_settings"
@@ -135,7 +73,7 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:focusable="true"
                         android:clickable="true"
-                        android:tint="#CCFFFFFF" />
+                        android:tint="#99FFFFFF" />
 
                 </LinearLayout>
 
@@ -149,6 +87,20 @@
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginBottom="?attr/actionBarSize"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_gravity="bottom"
+        android:background="@color/bottom_nav_background"
+        app:menu="@menu/bottom_nav_menu"
+        app:labelVisibilityMode="labeled"
+        app:itemTextColor="@color/bottom_nav_color"
+        app:itemIconTint="@color/bottom_nav_color"
+        app:itemBackground="@android:color/transparent"
+        app:elevation="0dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

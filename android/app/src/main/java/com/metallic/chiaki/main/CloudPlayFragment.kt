@@ -492,16 +492,13 @@ class CloudPlayFragment : Fragment()
 	
 	private fun selectCatalogTab()
 	{
-		// Update button styles (selected)
-		binding.catalogTabButton.setTextColor(resources.getColor(android.R.color.white, null))
+		binding.catalogTabButton.setTextColor(0xFF000000.toInt())
 		binding.catalogTabButton.setTypeface(null, android.graphics.Typeface.BOLD)
-		binding.catalogTabButton.setBackgroundResource(R.drawable.cloud_tab_selected)
-		binding.catalogTabButton.alpha = 1.0f
-		
-		// Unselected style
-		binding.libraryTabButton.setTextColor(resources.getColor(android.R.color.white, null))
+		binding.catalogTabButton.setBackgroundResource(R.drawable.mode_switcher_selected_bg)
+
+		binding.libraryTabButton.setTextColor(0xFFFFFFFF.toInt())
 		binding.libraryTabButton.setTypeface(null, android.graphics.Typeface.NORMAL)
-		binding.libraryTabButton.alpha = 0.45f
+		binding.libraryTabButton.alpha = 0.55f
 		binding.libraryTabButton.setBackgroundColor(android.graphics.Color.TRANSPARENT)
 		
 		// Hide All/Owned toggle for Catalog
@@ -523,16 +520,13 @@ class CloudPlayFragment : Fragment()
 	
 	private fun selectLibraryTab()
 	{
-		// Update button styles (selected)
-		binding.libraryTabButton.setTextColor(resources.getColor(android.R.color.white, null))
+		binding.libraryTabButton.setTextColor(0xFF000000.toInt())
 		binding.libraryTabButton.setTypeface(null, android.graphics.Typeface.BOLD)
-		binding.libraryTabButton.setBackgroundResource(R.drawable.cloud_tab_selected)
-		binding.libraryTabButton.alpha = 1.0f
-		
-		// Unselected style
-		binding.catalogTabButton.setTextColor(resources.getColor(android.R.color.white, null))
+		binding.libraryTabButton.setBackgroundResource(R.drawable.mode_switcher_selected_bg)
+
+		binding.catalogTabButton.setTextColor(0xFFFFFFFF.toInt())
 		binding.catalogTabButton.setTypeface(null, android.graphics.Typeface.NORMAL)
-		binding.catalogTabButton.alpha = 0.45f
+		binding.catalogTabButton.alpha = 0.55f
 		binding.catalogTabButton.setBackgroundColor(android.graphics.Color.TRANSPARENT)
 		
 		// Show All/Owned toggle for Library
@@ -565,13 +559,12 @@ class CloudPlayFragment : Fragment()
 		val isOwned = viewModel.preferences.getPsCloudFilterOwned()
 		binding.ownedToggleButton.text = if (isOwned) "Owned" else "All"
 		binding.ownedToggleButton.setTextColor(
-			if (isOwned) resources.getColor(android.R.color.holo_green_light, null)
-			else resources.getColor(android.R.color.white, null)
+			if (isOwned) 0xFF000000.toInt()
+			else 0x99FFFFFF.toInt()
 		)
-		binding.ownedToggleButton.alpha = if (isOwned) 1.0f else 0.6f
 		binding.ownedToggleButton.setBackgroundResource(
-			if (isOwned) R.drawable.cloud_tab_owned_selected
-			else R.drawable.cloud_tab_owned_unselected
+			if (isOwned) R.drawable.mode_switcher_selected_bg
+			else R.drawable.mode_switcher_bg
 		)
 	}
 	

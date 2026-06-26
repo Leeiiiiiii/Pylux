@@ -1539,6 +1539,7 @@ catch (e: Exception)
 			
 			// Video Configuration
 			spec.put("videoEncoderProfile", "hw4.1")
+			spec.put("hqMode", 1)
 			
 			// Input Configuration
 			val controllers = JSONArray().put("xinput")
