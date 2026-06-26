@@ -13,11 +13,25 @@ object CloudLocale
 
 	fun toImagicLocale(stored: String): String = stored.lowercase()
 
+	private val STORE_COUNTRY_MAP: Map<String, String> = mapOf(
+		"FI" to "GB",
+		"SE" to "GB",
+		"NO" to "GB",
+		"DK" to "GB",
+		"IS" to "GB",
+		"IE" to "GB",
+		"AT" to "DE",
+		"CH" to "DE",
+		"BE" to "FR",
+		"PT" to "ES",
+	)
+
 	fun parseStorePath(stored: String): Pair<String, String>
 	{
 		val parts = stored.split("-", limit = 2)
 		val language = parts.getOrNull(0)?.lowercase()?.takeIf { it.isNotEmpty() } ?: "en"
-		val country = parts.getOrNull(1)?.uppercase()?.takeIf { it.isNotEmpty() } ?: "US"
+		val rawCountry = parts.getOrNull(1)?.uppercase()?.takeIf { it.isNotEmpty() } ?: "US"
+		val country = STORE_COUNTRY_MAP[rawCountry] ?: rawCountry
 		return country to language
 	}
 

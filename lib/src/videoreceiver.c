@@ -150,7 +150,7 @@ CHIAKI_EXPORT void chiaki_video_receiver_av_packet(ChiakiVideoReceiver *video_re
 	if(video_receiver->frame_index_cur != video_receiver->frame_index_prev)
 	{
 		// if we already have enough for the whole frame, flush it already
-		if(chiaki_frame_processor_flush_possible(&video_receiver->frame_processor) || packet->unit_index == packet->units_in_frame_total - 1)
+		if(chiaki_frame_processor_flush_possible(&video_receiver->frame_processor))
 			err = chiaki_video_receiver_flush_frame(video_receiver);
 		if(err != CHIAKI_ERR_SUCCESS)
 			CHIAKI_LOGW(video_receiver->log, "Video receiver could not flush frame.");
@@ -172,6 +172,8 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 			stream_connection_send_corrupt_frame(&video_receiver->session->stream_connection, next_frame_expected, video_receiver->frame_index_cur);
 			video_receiver->frames_lost += video_receiver->frame_index_cur - next_frame_expected + 1;
 			video_receiver->frame_index_prev = video_receiver->frame_index_cur;
+			video_receiver->frame_index_prev_complete = video_receiver->frame_index_cur;
+			return CHIAKI_ERR_SUCCESS;
 		}
 		CHIAKI_LOGW(video_receiver->log, "Failed to complete frame %d", (int)video_receiver->frame_index_cur);
 		return CHIAKI_ERR_UNKNOWN;
@@ -205,7 +207,10 @@ static ChiakiErrorCode chiaki_video_receiver_flush_frame(ChiakiVideoReceiver *vi
 				{
 					succ = false;
 					video_receiver->frames_lost++;
-					CHIAKI_LOGW(video_receiver->log, "Missing reference frame %d for decoding frame %d", (int)ref_frame_index, (int)video_receiver->frame_index_cur);
+					CHIAKI_LOGW(video_receiver->log, "Missing reference frame %d for decoding frame %d — dropping dependent frame", (int)ref_frame_index, (int)video_receiver->frame_index_cur);
+					video_receiver->frame_index_prev = video_receiver->frame_index_cur;
+					video_receiver->frame_index_prev_complete = video_receiver->frame_index_cur;
+					return CHIAKI_ERR_SUCCESS;
 				}
 			}
 		}

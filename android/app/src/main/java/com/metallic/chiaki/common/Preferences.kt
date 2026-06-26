@@ -264,6 +264,7 @@ class Preferences(context: Context)
 
 	fun setCloudLanguageFromSession(language: String?, country: String?)
 	{
+		if (isCloudLanguageConfigured()) return
 		val locale = com.metallic.chiaki.cloudplay.CloudLocale.fromSession(language, country) ?: return
 		setCloudLanguage(locale)
 	}

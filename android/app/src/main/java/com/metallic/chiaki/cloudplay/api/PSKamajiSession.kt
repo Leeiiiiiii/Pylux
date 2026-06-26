@@ -306,48 +306,51 @@ class PSKamajiSession(
 	 */
 	private fun step0_5d_ConvertProductId(sessionId: String): Triple<String, String, String>?
 	{
+		val localeSetting = preferences.getCloudLanguage()
+		val (primaryCountry, language) = com.metallic.chiaki.cloudplay.CloudLocale.parseStorePath(localeSetting)
+
+		// Try primary country first, fall back to US if it fails
+		val countryCandidates = listOf(primaryCountry, "US").distinct()
+
+		for ((attempt, country) in countryCandidates.withIndex())
+		{
+			val result = tryConvertProductId(country, language, attempt > 0)
+			if (result != null)
+				return result
+		}
+
+		return null
+	}
+
+	private fun tryConvertProductId(country: String, language: String, isRetry: Boolean): Triple<String, String, String>?
+	{
 		try
 		{
-		val localeSetting = preferences.getCloudLanguage()
-		val (country, language) = com.metallic.chiaki.cloudplay.CloudLocale.parseStorePath(localeSetting)
-		Log.i(TAG, "Using locale from settings: $localeSetting -> country=$country, language=$language")
-		val url = "$storeBase/container/$country/$language/19/$productId?useOffers=true&gkb=1&gkb2=1"
-			
-			Log.d(TAG, "Step 0.5d: Convert Product ID")
-			Log.d(TAG, "URL: $url")
-			
+			val flag = if (isRetry) " (retry)" else ""
+			val url = "$storeBase/container/$country/$language/19/$productId?useOffers=true&gkb=1&gkb2=1"
+			Log.i(TAG, "Step 0.5d: Convert Product ID$flag")
+			Log.i(TAG, "URL$flag: $url")
+
 			val headers = mapOf(
 				"Accept" to "application/json",
 				"User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 			)
-			
+
 			val response = HttpClient.get(url, headers)
-			
-			Log.d(TAG, "Step 0.5d Response: ${response.statusCode}")
-			
-			if (response.statusCode == 404)
-			{
-				Log.e(TAG, "Product ID not found (404)")
-				return null
-			}
-			
+			Log.i(TAG, "Step 0.5d Response$flag: ${response.statusCode}")
+
 			if (response.statusCode != 200)
 			{
-				Log.e(TAG, "Product lookup failed: ${response.statusCode}")
+				Log.w(TAG, "Product lookup failed (${response.statusCode}) for country=$country, language=$language")
 				return null
 			}
-			
+
 			val json = JSONObject(response.body)
-			
-			Log.d(TAG, "Product response JSON: ${response.body.take(500)}...")
-			
-			// Extract entitlement ID and SKU
+
 			var streamingEntitlementId = ""
 			var sku = ""
-			var detectedPlatform = "ps4" // Default
-			
-			// Look for streaming entitlement - check default_sku first, then skus array
-			// Streaming entitlements have license_type == 4
+			var detectedPlatform = "ps4"
+
 			if (json.has("default_sku"))
 			{
 				val defaultSku = json.getJSONObject("default_sku")
@@ -358,8 +361,6 @@ class PSKamajiSession(
 					{
 						val ent = entitlements.getJSONObject(i)
 						val licenseType = ent.optInt("license_type", -1)
-						
-						// Streaming entitlements have license_type == 4
 						if (licenseType == 4)
 						{
 							val entId = ent.optString("id", "")
@@ -368,19 +369,17 @@ class PSKamajiSession(
 								streamingEntitlementId = entId
 								sku = defaultSku.optString("id", "")
 								Log.i(TAG, "Found streaming Entitlement ID from default_sku: $streamingEntitlementId")
-								Log.i(TAG, "License Type: $licenseType")
-								Log.i(TAG, "SKU: $sku")
 								break
 							}
 						}
 					}
 				}
 			}
-			
-			// If not found in default_sku, check all SKUs in the skus array
+
 			if (streamingEntitlementId.isEmpty() && json.has("skus"))
 			{
 				val skus = json.getJSONArray("skus")
+				// First pass: look for streaming SKUs (packageType=PS4GS or subType=1)
 				for (i in 0 until skus.length())
 				{
 					val skuObj = skus.getJSONObject(i)
@@ -390,29 +389,49 @@ class PSKamajiSession(
 						for (j in 0 until entitlements.length())
 						{
 							val ent = entitlements.getJSONObject(j)
-							val licenseType = ent.optInt("license_type", -1)
-							
-							// Streaming entitlements have license_type == 4
-							if (licenseType == 4)
+							val entId = ent.optString("id", "")
+							if (entId.isEmpty()) continue
+							val pkgType = ent.optString("packageType", "")
+							val subType = ent.optInt("subType", -1)
+							// PS4GS = Game Streaming, subType=1 = streaming variant
+							if (pkgType == "PS4GS" || subType == 1)
 							{
-								val entId = ent.optString("id", "")
-								if (entId.isNotEmpty())
-								{
-									streamingEntitlementId = entId
-									sku = skuObj.optString("id", "")
-									Log.i(TAG, "Found streaming Entitlement ID from skus array: $streamingEntitlementId")
-									Log.i(TAG, "License Type: $licenseType")
-									Log.i(TAG, "SKU: $sku")
-									break
-								}
+								streamingEntitlementId = entId
+								sku = skuObj.optString("id", "")
+								Log.i(TAG, "Found streaming Entitlement ID from skus (pkg=$pkgType, subType=$subType): $streamingEntitlementId")
+								break
 							}
 						}
 					}
 					if (streamingEntitlementId.isNotEmpty()) break
 				}
+				// Second pass: fallback to any entitlement
+				if (streamingEntitlementId.isEmpty())
+				{
+					for (i in 0 until skus.length())
+					{
+						val skuObj = skus.getJSONObject(i)
+						if (skuObj.has("entitlements"))
+						{
+							val entitlements = skuObj.getJSONArray("entitlements")
+							for (j in 0 until entitlements.length())
+							{
+								val ent = entitlements.getJSONObject(j)
+								val entId = ent.optString("id", "")
+								if (entId.isNotEmpty())
+								{
+									streamingEntitlementId = entId
+									sku = skuObj.optString("id", "")
+									Log.i(TAG, "Found fallback Entitlement ID from skus: $streamingEntitlementId")
+									break
+								}
+							}
+						}
+						if (streamingEntitlementId.isNotEmpty()) break
+					}
+				}
 			}
-			
-			// Try to extract platform from playable_platform
+
 			if (json.has("playable_platform"))
 			{
 				val playablePlatform = json.getJSONArray("playable_platform")
@@ -421,21 +440,10 @@ class PSKamajiSession(
 				for (i in 0 until playablePlatform.length())
 				{
 					val platformStr = playablePlatform.getString(i)
-					if (platformStr.contains("PS4", ignoreCase = true))
-					{
-						hasPS4 = true
-					}
-					else if (platformStr.contains("PS3", ignoreCase = true))
-					{
-						hasPS3 = true
-					}
+					if (platformStr.contains("PS4", ignoreCase = true)) hasPS4 = true
+					else if (platformStr.contains("PS3", ignoreCase = true)) hasPS3 = true
 				}
-				detectedPlatform = when
-				{
-					hasPS4 -> "ps4"
-					hasPS3 -> "ps3"
-					else -> "ps4"
-				}
+				detectedPlatform = when { hasPS4 -> "ps4"; hasPS3 -> "ps3"; else -> "ps4" }
 				Log.i(TAG, "Detected platform from playable_platform: $detectedPlatform")
 			}
 			else if (json.has("metadata"))
@@ -455,29 +463,23 @@ class PSKamajiSession(
 							if (platformStr.contains("PS4", ignoreCase = true)) hasPS4 = true
 							else if (platformStr.contains("PS3", ignoreCase = true)) hasPS3 = true
 						}
-						detectedPlatform = when
-						{
-							hasPS4 -> "ps4"
-							hasPS3 -> "ps3"
-							else -> "ps4"
-						}
+						detectedPlatform = when { hasPS4 -> "ps4"; hasPS3 -> "ps3"; else -> "ps4" }
 					}
 				}
 			}
-			
+
 			if (streamingEntitlementId.isEmpty())
 			{
 				Log.e(TAG, "Could not determine Entitlement ID from Product ID '$productId'. Game may not be available for cloud streaming.")
 				return null
 			}
-			
+
 			Log.i(TAG, "Converted Product ID: $productId -> Entitlement: $streamingEntitlementId, Platform: $detectedPlatform")
-			
 			return Triple(streamingEntitlementId, detectedPlatform, sku)
 		}
 		catch (e: Exception)
 		{
-			Log.e(TAG, "Step 0.5d error", e)
+			Log.e(TAG, "Step 0.5d error for country=$country", e)
 			return null
 		}
 	}
