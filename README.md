@@ -54,6 +54,38 @@ The drops counter in the overlay now reflects **actual frame loss** from chiaki'
 
 ---
 
+## Cloud Streaming Fixes (2026-06-26/27)
+
+### Bloodborne PS Now
+- **Store country mapping** — PSNOW's store API rejects country codes without a store (FI, SE, NO, DK). Added mapping Nordic→GB, AT/CH→DE, BE→FR, PT→ES
+- **Streaming SKU detection** — Sony changed their API; `license_type` no longer equals `4`. Added two-pass scan preferring streaming SKUs (`packageType="PS4GS"`, `subType=1`)
+- **Country retry** — falls back to US when primary country fails the product ID lookup
+
+### Games Ownership Detection
+Free-to-play and cross-gen titles (Fortnite, GTA V PS5) were not showing as owned, blocking streaming. Fixed by porting upstream's matching logic:
+- **Stable key matching** — tokenizes product IDs like `EP1464-PPSA01923_00-FNBNDL0000000000` → `EP1464|PPSA01923_00` to match across format differences between the entitlement API and catalog
+- **Component ID sibling matching** — builds a map of product IDs to sibling entitlement IDs from raw API data, used as fallback when direct matching fails
+
+### Stream Quality
+- **hqMode: 1** added to PSNOW Gaikai allocation spec
+- Chiaki library decoder fixes: FEC failure recovery, ref-frame corruption isolation, crypto key buffer expanded (32→512), off-by-one fix in frameprocessor, IDR request support
+- PSNOW datacenters capped at **25 Mbps** across all 5 European DCs; PSCLOUD is uncapped
+
+---
+
+## PS5 Cloud Streaming UI
+
+- **PS5 Portal-style design** — dark navy-black background (`#13141B`), dark surface cards (`#1A1C24`), white accent throughout, frosted bottom nav
+- **Game cards** — full cover art with gradient overlay, game name on gradient with shadow, platform and ownership badges, scale-down press animation, 12dp rounded corners
+- **Bottom navigation** — Cloud Play | Remote Play | Settings wired to ViewPager
+- **Catalog / Library tabs** — PS5 pill-style, LB/RB controller shortcuts
+- **Fullscreen browsing** — toolbar, logo, donation and settings icons removed; games fill the screen
+- **Card focus animations** — programmatic 1.04x scale on focus, focused stroke selector, state list animator
+- **Image loading** — Coil fixes (removed `dispose()` from `onViewRecycled`, added placeholders, disk cache always on)
+- **Scroll & focus** — three-layer containment, D-pad navigation with direct `focusGridPosition()`, non-focusable bottom nav
+
+---
+
 ## Original Features (upstream)
 
 - **Internet Play** — stream games from the game catalog or your owned game library
@@ -69,7 +101,7 @@ The drops counter in the overlay now reflects **actual frame loss** from chiaki'
 
 <a href="https://github.com/Leeiiiiiii/Pylux/releases"><img src="assets/github-release-badge.svg" height="50" alt="Download from GitHub Releases"></a>
 
-Latest fork APK: **[Pylux-v2.10.21-beta.apk](https://github.com/Leeiiiiiii/Pylux/releases/tag/v1.0-beta)**
+Latest fork APK: **[Download from GitHub Releases](https://github.com/Leeiiiiiii/Pylux/releases)**
 
 For upstream downloads see the [official releases page](https://github.com/ForWard-Technologies-LLC/Pylux/releases).
 
@@ -81,12 +113,23 @@ All fork changes are submitted to upstream via **[PR #21](https://github.com/For
 
 ---
 
-## Key Discoveries (2026-06-22)
+## Key Discoveries (2026-06-22 / 2026-06-27)
 
 - **Game language is tied to datacenter region.** Selecting a language without a matching datacenter has no effect — Gaikai ignores the mismatch.
 - **Gaikai expects bare language codes** (`"de"`, `"en"`) not full locales (`"de-DE"`, `"en-US"`), though both are accepted.
 - **PSN account region determines available datacenters.** A Finnish account (`country: FI`) gets Nordic servers (Stockholm), not German ones.
 - **Sony caps cloud streams at ~50 Mbps** for 4K. The measured bitrate in the overlay confirms actual throughput.
+- **Sony runs two separate cloud streaming backends:**
+
+| | PSNOW (PS4) | PSCLOUD (PS5) |
+|---|---|---|
+| **model** | WINDOWS | portal |
+| **platform** | PC | qlite |
+| **gaikaiPlayer** | 12.5.0 | 16.4.0 |
+| **protocol** | v9 | v12 |
+| **bitrate cap** | 25 Mbps | uncapped |
+
+- **GTA V PS5 is unavailable on PSCLOUD** — server returns `002.2026 noGameForEntitlementId`. Only the PS4 version streams via PSNOW.
 
 ---
 
