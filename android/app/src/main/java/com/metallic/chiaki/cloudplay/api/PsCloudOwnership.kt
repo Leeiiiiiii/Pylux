@@ -53,6 +53,7 @@ object PsCloudOwnership
 		publicCatalog: List<CloudGame>,
 		plusLibrarySupplement: List<CloudGame> = emptyList(),
 		productIdAliases: Map<String, String> = emptyMap(),
+		componentIdsByProductId: Map<String, List<String>> = emptyMap(),
 	): List<CloudGame>
 	{
 		val catalogMap = catalogMapFirstWins(publicCatalog)
@@ -63,21 +64,12 @@ object PsCloudOwnership
 			catalogMap[canonical]?.let { catalogMap[alias] = it }
 		}
 		val supplementMap = catalogMapFirstWins(plusLibrarySupplement)
+		val browseStableKey = buildStableKeyIndex(publicCatalog)
+		val supplementStableKey = buildStableKeyIndex(plusLibrarySupplement)
 		val byKey = linkedMapOf<String, CloudGame>()
 
-		for (ent in filteredEntitlements)
+		fun emitMatch(meta: CloudGame, ent: Entitlement)
 		{
-			val meta = when {
-				ent.productId.isNotEmpty() && catalogMap.containsKey(ent.productId) ->
-					catalogMap[ent.productId]
-				ent.id.isNotEmpty() && catalogMap.containsKey(ent.id) ->
-					catalogMap[ent.id]
-				ent.productId.isNotEmpty() && ent.id == ent.productId
-					&& supplementMap.containsKey(ent.productId) ->
-					supplementMap[ent.productId]
-				else -> null
-			} ?: continue
-
 			val displayName = meta.name.ifEmpty { ent.name }
 			val game = meta.copy(
 				name = displayName,
@@ -88,6 +80,72 @@ object PsCloudOwnership
 			val key = ownedDedupeKey(meta, ent)
 			val existing = byKey[key]
 			byKey[key] = if (existing == null) game else preferOwnedEntry(existing, game)
+		}
+
+		for (ent in filteredEntitlements)
+		{
+			val skipStableDemo = ent.name.contains("demo", ignoreCase = true)
+			val matches = mutableListOf<CloudGame>()
+
+			if (ent.productId.isNotEmpty() && catalogMap.containsKey(ent.productId))
+			{
+				matches.add(catalogMap.getValue(ent.productId))
+			}
+			else if (ent.id.isNotEmpty() && catalogMap.containsKey(ent.id))
+			{
+				matches.add(catalogMap.getValue(ent.id))
+			}
+			else if (ent.productId.isNotEmpty() && ent.id == ent.productId
+				&& supplementMap.containsKey(ent.productId))
+			{
+				matches.add(supplementMap.getValue(ent.productId))
+			}
+			else
+			{
+				val entitlementStableKey = productIdStableKey(ent.id)
+				if (entitlementStableKey != null && !skipStableDemo
+					&& browseStableKey.containsKey(entitlementStableKey))
+				{
+					matches.add(browseStableKey.getValue(entitlementStableKey))
+				}
+				else if (entitlementStableKey != null && !skipStableDemo
+					&& supplementStableKey.containsKey(entitlementStableKey))
+				{
+					matches.add(supplementStableKey.getValue(entitlementStableKey))
+				}
+			}
+
+			if (matches.isEmpty())
+			{
+				val seenProductIds = mutableSetOf<String>()
+				for (siblingId in componentIdsByProductId[ent.productId].orEmpty())
+				{
+					val siblingMeta = when
+					{
+						catalogMap.containsKey(siblingId) -> catalogMap[siblingId]
+						supplementMap.containsKey(siblingId) -> supplementMap[siblingId]
+						else ->
+						{
+							val siblingStableKey = productIdStableKey(siblingId)
+							if (siblingStableKey != null && !skipStableDemo)
+								browseStableKey[siblingStableKey]
+									?: supplementStableKey[siblingStableKey]
+							else
+								null
+						}
+					} ?: continue
+					if (siblingMeta.productId.isEmpty() || siblingMeta.productId in seenProductIds)
+						continue
+					seenProductIds.add(siblingMeta.productId)
+					matches.add(siblingMeta)
+				}
+			}
+
+			if (matches.isEmpty())
+				continue
+
+			for (meta in matches)
+				emitMatch(meta, ent)
 		}
 
 		return byKey.values.toList()
@@ -119,6 +177,37 @@ object PsCloudOwnership
 				map[game.productId] = game
 		}
 		return map
+	}
+
+	/** Tokenize on '-' and '_'; identity is all tokens except the last (store SKU). */
+	private fun productIdStableKey(productId: String): String?
+	{
+		if (productId.isEmpty())
+			return null
+		val tokens = mutableListOf<String>()
+		for (dashPart in productId.split('-'))
+		{
+			for (token in dashPart.split('_'))
+			{
+				if (token.isNotEmpty())
+					tokens.add(token)
+			}
+		}
+		if (tokens.size < 2)
+			return null
+		return tokens.dropLast(1).joinToString("|")
+	}
+
+	private fun buildStableKeyIndex(games: List<CloudGame>): Map<String, CloudGame>
+	{
+		val index = linkedMapOf<String, CloudGame>()
+		for (game in games)
+		{
+			val key = productIdStableKey(game.productId) ?: continue
+			if (key !in index)
+				index[key] = game
+		}
+		return index
 	}
 
 	fun mergeOwnedIntoBrowseCatalog(
