@@ -113,26 +113,6 @@ All fork changes are submitted to upstream via **[PR #21](https://github.com/For
 
 ---
 
-## Key Discoveries (2026-06-22 / 2026-06-27)
-
-- **Game language is tied to datacenter region.** Selecting a language without a matching datacenter has no effect — Gaikai ignores the mismatch.
-- **Gaikai expects bare language codes** (`"de"`, `"en"`) not full locales (`"de-DE"`, `"en-US"`), though both are accepted.
-- **PSN account region determines available datacenters.** A Finnish account (`country: FI`) gets Nordic servers (Stockholm), not German ones.
-- **Sony caps cloud streams at ~50 Mbps** for 4K. The measured bitrate in the overlay confirms actual throughput.
-- **Sony runs two separate cloud streaming backends:**
-
-| | PSNOW (PS4) | PSCLOUD (PS5) |
-|---|---|---|
-| **model** | WINDOWS | portal |
-| **platform** | PC | qlite |
-| **gaikaiPlayer** | 12.5.0 | 16.4.0 |
-| **protocol** | v9 | v12 |
-| **bitrate cap** | 25 Mbps | uncapped |
-
-- **GTA V PS5 is unavailable on PSCLOUD** — server returns `002.2026 noGameForEntitlementId`. Only the PS4 version streams via PSNOW.
-
----
-
 ## Contributing
 
 This fork targets Android enhancements. Fork the repo, create a branch, and open a PR. See upstream [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
