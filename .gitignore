@@ -89,3 +89,4 @@ scripts/flatpak/test-flatpak-local.sh
 pylux-test.flatpak
 
 conversation_summary.md
+AGENTS.md
