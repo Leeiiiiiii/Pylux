@@ -57,19 +57,19 @@ The drops counter in the overlay now reflects **actual frame loss** from chiaki'
 ## Cloud Streaming Fixes (2026-06-26/27)
 
 ### Bloodborne PS Now
-- **Store country mapping** — PSNOW's store API rejects country codes without a store (FI, SE, NO, DK). Added mapping Nordic→GB, AT/CH→DE, BE→FR, PT→ES
-- **Streaming SKU detection** — Sony changed their API; `license_type` no longer equals `4`. Added two-pass scan preferring streaming SKUs (`packageType="PS4GS"`, `subType=1`)
-- **Country retry** — falls back to US when primary country fails the product ID lookup
+- **Store country mapping** — Sony's store doesn't work in some countries (Nordic region, etc). Added automatic country fallbacks so game lookups don't fail.
+- **Streaming SKU detection** — Sony changed how they tag streamable games. Updated the scan to handle both old and new formats.
+- **Country retry** — if your region's store can't find a game, automatically retries with US.
 
 ### Games Ownership Detection
-Free-to-play and cross-gen titles (Fortnite, GTA V PS5) were not showing as owned, blocking streaming. Fixed by porting upstream's matching logic:
-- **Stable key matching** — tokenizes product IDs like `EP1464-PPSA01923_00-FNBNDL0000000000` → `EP1464|PPSA01923_00` to match across format differences between the entitlement API and catalog
-- **Component ID sibling matching** — builds a map of product IDs to sibling entitlement IDs from raw API data, used as fallback when direct matching fails
+Free-to-play and cross-gen titles (Fortnite, GTA V PS5) were not showing as owned, blocking streaming. Fixed by improving how owned games are matched against the catalog:
+- **Fuzzy ID matching** — handles the different ID formats Sony's catalog and entitlement API use for the same game
+- **Sibling ID fallback** — tries related product IDs when an exact match fails
 
 ### Stream Quality
-- **hqMode: 1** added to PSNOW Gaikai allocation spec
-- Chiaki library decoder fixes: FEC failure recovery, ref-frame corruption isolation, crypto key buffer expanded (32→512), off-by-one fix in frameprocessor, IDR request support
-- PSNOW datacenters capped at **25 Mbps** across all 5 European DCs; PSCLOUD is uncapped
+- **HQ mode** — tells Sony's servers to prioritize quality over bitrate savings
+- Patched video decoder issues causing stutters (corrupted frames now recover instead of cascading)
+- PSNOW streams are capped at **25 Mbps** in Europe; PSCLOUD is uncapped
 
 ---
 
@@ -81,8 +81,8 @@ Free-to-play and cross-gen titles (Fortnite, GTA V PS5) were not showing as owne
 - **Catalog / Library tabs** — PS5 pill-style, LB/RB controller shortcuts
 - **Fullscreen browsing** — toolbar, logo, donation and settings icons removed; games fill the screen
 - **Card focus animations** — programmatic 1.04x scale on focus, focused stroke selector, state list animator
-- **Image loading** — Coil fixes (removed `dispose()` from `onViewRecycled`, added placeholders, disk cache always on)
-- **Scroll & focus** — three-layer containment, D-pad navigation with direct `focusGridPosition()`, non-focusable bottom nav
+- **Image loading** — fixed covers appearing blank during scroll, now shows instantly
+- **Scroll & focus** — fixed controller navigation getting stuck and scrolling jumping around
 
 ---
 
@@ -104,12 +104,6 @@ Free-to-play and cross-gen titles (Fortnite, GTA V PS5) were not showing as owne
 Latest fork APK: **[Download from GitHub Releases](https://github.com/Leeiiiiiii/Pylux/releases)**
 
 For upstream downloads see the [official releases page](https://github.com/ForWard-Technologies-LLC/Pylux/releases).
-
----
-
-## Upstream PR
-
-All fork changes are submitted to upstream via **[PR #21](https://github.com/ForWard-Technologies-LLC/Pylux/pull/21)**.
 
 ---
 
